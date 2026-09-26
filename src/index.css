@@ -103,6 +103,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   transition:width var(--transition), transform var(--transition);
   z-index:60;
   flex-shrink:0;
+  overflow-x:hidden;
 }
 .sidebar.collapsed{width:var(--sidebar-w-collapsed);}
 .sidebar-brand{display:flex;align-items:center;gap:10px;margin-bottom:22px;position:relative;}
@@ -120,7 +121,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .role-btn.active{background:var(--gold);color:#2b1e05;}
 .sidebar.collapsed .role-btn span{display:none;}
 
-.side-nav{display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto;}
+.side-nav{
+  display:flex;flex-direction:column;gap:3px;flex:1;
+  overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent;
+}
+.side-nav::-webkit-scrollbar{width:6px;}
+.side-nav::-webkit-scrollbar-track{background:transparent;}
+.side-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:6px;}
+.side-nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.35);}
 .nav-link{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:11px;color:rgba(255,255,255,.75);font-size:.88rem;font-weight:500;transition:background var(--transition), color var(--transition), transform .15s ease;white-space:nowrap;overflow:hidden;}
 .nav-link i{width:18px;text-align:center;font-size:.95rem;}
 .nav-link:hover{background:rgba(255,255,255,.08);color:#fff;transform:translateX(2px);}
@@ -744,3 +753,7 @@ body.dark .modal-body input,body.dark .modal-body select,body.dark .modal-body t
 .profile-center-header{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:8px 4px 18px;}
 .profile-center-header img{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid var(--sage-pale);}
 .profile-center-actions{display:flex;justify-content:center;gap:10px;margin-top:6px;}
+
+/* Login form reuses .modal-body for the stacked label layout, but the card
+   itself already has padding — avoid adding a second layer of it. */
+.login-card form.modal-body{padding:0;}

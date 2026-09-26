@@ -14,7 +14,6 @@ import FarmerInsurance from "./pages/farmer/Insurance.jsx";
 import FarmerAssistance from "./pages/farmer/Assistance.jsx";
 import FarmerEligibility from "./pages/farmer/Eligibility.jsx";
 import FarmerActivity from "./pages/farmer/Activity.jsx";
-import FarmerNotifications from "./pages/farmer/Notifications.jsx";
 import FarmerPolicies from "./pages/farmer/Policies.jsx";
 import FarmerAnnouncements from "./pages/farmer/Announcements.jsx";
 
@@ -39,6 +38,7 @@ import Association from "./pages/shared/Association.jsx";
 import Reports from "./pages/shared/Reports.jsx";
 import StaffProfile from "./pages/shared/StaffProfile.jsx";
 import Settings from "./pages/shared/Settings.jsx";
+import Notifications from "./pages/shared/Notifications.jsx";
 
 function RootRedirect() {
   const { session, role, loading } = useAuth();
@@ -63,7 +63,7 @@ export default function App() {
         <Route path="assistance" element={<FarmerAssistance />} />
         <Route path="eligibility" element={<FarmerEligibility />} />
         <Route path="activity" element={<FarmerActivity />} />
-        <Route path="notifications" element={<FarmerNotifications />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="policies" element={<FarmerPolicies />} />
         <Route path="announcements" element={<FarmerAnnouncements />} />
       </Route>
@@ -71,6 +71,7 @@ export default function App() {
       {/* ADMIN */}
       <Route path="/admin" element={<ProtectedRoute allow="admin"><Layout role="admin" /></ProtectedRoute>}>
         <Route index element={<AdminDashboard />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="farmers" element={<AdminFarmers />} />
         <Route path="requests" element={<AdminRequests />} />
         <Route path="yield" element={<AdminYield />} />
@@ -86,6 +87,7 @@ export default function App() {
       {/* PRESIDENT */}
       <Route path="/president" element={<ProtectedRoute allow="president"><Layout role="president" /></ProtectedRoute>}>
         <Route index element={<PresidentDashboard />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="validation" element={<Validation />} />
         <Route path="association" element={<Association scope="president" />} />
         <Route path="crops" element={<PresidentCrops />} />

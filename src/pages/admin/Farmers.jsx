@@ -69,11 +69,14 @@ export default function AdminFarmers() {
 
   const [addError, setAddError] = useState("");
 
-  // supabase-js returns { data: null, error } on any non-2xx response from
-  // an Edge Function — the JSON body with our actual error message lives on
-  // error.context (the raw Response), not on `data`. Reading only `data?.error`
-  // (as the previous version did) silently loses that detail and shows a
-  // generic "non-2xx status code" message instead of the real reason.
+  // Creates the farmer's login + profile/farmer rows directly from the
+  // browser — no Edge Function, no CLI deployment needed. The auth account
+  // is created on supabaseAuthOnly (an isolated client that never touches
+  // the shared session), then the profile/farmer/crops rows are inserted
+  // Calls the admin-create-user Edge Function (deployed via the Supabase
+  // dashboard's Edge Functions UI — no CLI needed). This uses the Admin API
+  // under the hood, so it works regardless of whether public signups are
+  // enabled on the project, unlike the direct-signup approach.
   async function extractFunctionError(error, data) {
     if (data?.error) return data.error;
     if (!error) return "Unknown error.";
@@ -84,7 +87,7 @@ export default function AdminFarmers() {
       }
     } catch (_) { /* body wasn't JSON — fall through to error.message */ }
     if (/failed to fetch|networkerror|load failed/i.test(error.message || "")) {
-      return "Could not reach the admin-create-user Edge Function. Has it been deployed? Run: supabase functions deploy admin-create-user";
+      return "Could not reach the admin-create-user Edge Function. Has it been deployed (Supabase Dashboard → Edge Functions)?";
     }
     return error.message || "Something went wrong.";
   }
@@ -102,14 +105,15 @@ export default function AdminFarmers() {
     } catch (err) {
       error = err;
     }
-    setSaving(false);
     if (error || data?.error) {
       const msg = await extractFunctionError(error, data);
       console.error("admin-create-user failed:", { error, data });
       setAddError(msg);
       showToast(msg, "fa-triangle-exclamation");
+      setSaving(false);
       return;
     }
+    setSaving(false);
     showToast("Farmer enrolled (RSBSA record created).", "fa-user-plus");
     setAddOpen(false);
     setAddForm(emptyAdd);
