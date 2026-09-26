@@ -461,22 +461,11 @@ create trigger trg_apply_approved_profile_update
 -- ============================================================================
 -- VIEWS — convenience read models used directly by the frontend
 -- ============================================================================
--- (farmer_directory is defined once, later in this file, in the RSBSA
--- migration section — it needs the full farmers.* column set, which didn't
--- exist yet at this point in the file on a fresh database.)
-
--- Dashboard aggregate counts (admin + president dashboards read this single row)
-create or replace view public.dashboard_stats as
-select
-  (select count(*) from public.farmers) as total_farmers,
-  (select coalesce(sum(kilograms),0) from public.yield_records where status = 'Verified') as total_yield_kg,
-  (select count(*) from public.assistance_records) as total_assistance_records,
-  (select count(*) from public.assistance_records where assistance_type = 'Crop Insurance') as insurance_claims,
-  (select count(*) from public.farmers where validated = false) as pending_validations,
-  (select count(*) from public.assistance_records where status = 'Pending' or status = 'Under Review') as pending_applications,
-  (select count(*) from public.assistance_records where status = 'Released') as released_assistance;
-
-grant select on public.dashboard_stats to authenticated;
+-- (farmer_directory and dashboard_stats are defined once, later in this
+-- file, after the columns they depend on — including yield_records'
+-- quantity_kg — exist. Defining them here too, on top of assumptions about
+-- column names that later migrations change, is exactly what caused repeat
+-- "column does not exist" errors on re-runs.)
 
 
 -- ============================================================================
@@ -573,6 +562,15 @@ alter table public.farmers add column if not exists consent_date date;
 -- CASCADE is required here on re-runs: yield_report (defined further below
 -- in this file) depends on this view. It gets recreated later in this same
 -- script, so dropping it here along with farmer_directory is safe.
+--
+-- total_verified_yield is a PLACEHOLDER (0) here, not a real computation:
+-- whether the real yield column is still named `kilograms` or has already
+-- been renamed to `quantity`/`quantity_kg` depends on whether this script
+-- has been run before on this database, so neither name is safe to
+-- reference at this exact point. The correct, final definition of this
+-- view (computed from quantity_kg) is created later in this same script,
+-- after that column is guaranteed to exist — this version is fully
+-- replaced before anyone ever reads from it.
 drop view if exists public.farmer_directory cascade;
 create view public.farmer_directory as
 select
@@ -586,7 +584,7 @@ select
     (select array_agg(fc.crop_name) from public.farmer_crops fc where fc.farmer_id = f.id),
     array[]::text[]
   ) as crops,
-  coalesce((select sum(y.kilograms) from public.yield_records y where y.farmer_id = f.id and y.status = 'Verified'), 0) as total_verified_yield
+  0::numeric as total_verified_yield
 from public.farmers f
 join public.profiles p on p.id = f.id
 left join public.associations a on a.id = f.association_id;
@@ -599,7 +597,6 @@ grant select on public.farmer_directory to authenticated;
 -- security_invoker = true makes these views respect the *querying* user's
 -- RLS instead, so a farmer only ever sees their own row through them.
 alter view public.farmer_directory set (security_invoker = true);
-alter view public.dashboard_stats set (security_invoker = true);
 
 -- ============================================================================
 -- MIGRATION — Insurance record overhaul, Assistance quantity/source/status,
@@ -680,30 +677,12 @@ alter table public.assistance_records add constraint assistance_records_status_c
   check (status in ('Pending','Under Review','Incoming','Released','Denied'));
 
 -- ============================================================================
--- VIEW — Yield Reports (joins in farm area / planting date from the farmer's
--- crop registration for that crop, rather than duplicating those columns
--- onto yield_records).
+-- (yield_report is created once, later in this file, after quantity_kg
+-- exists — an earlier version of this migration defined it here too using
+-- the yield_records column name as it existed on a fresh database, which
+-- broke on any re-run after that column had already been renamed further
+-- down in this same script.)
 -- ============================================================================
-drop view if exists public.yield_report;
-create view public.yield_report as
-select
-  y.id, y.farmer_id, fd.full_name as farmer_name, y.crop_name, y.season,
-  y.kilograms, 'kg'::text as unit, y.harvest_date, y.status, y.verified_by,
-  vp.full_name as verified_by_name, y.created_at as submitted_at,
-  cr.area as farm_area, cr.planting_date
-from public.yield_records y
-join public.farmer_directory fd on fd.id = y.farmer_id
-left join public.profiles vp on vp.id = y.verified_by
-left join lateral (
-  select cr2.area, cr2.planting_date
-  from public.crop_registrations cr2
-  where cr2.farmer_id = y.farmer_id and cr2.crop_name = y.crop_name
-  order by cr2.registered_at desc
-  limit 1
-) cr on true;
-
-alter view public.yield_report set (security_invoker = true);
-grant select on public.yield_report to authenticated;
 
 -- ============================================================================
 -- SEED DATA (moved to the end of the file so it runs AFTER every migration
@@ -907,7 +886,9 @@ do $$ begin
   alter table public.yield_records rename column kilograms to quantity;
 exception when undefined_column then null; end $$;
 
-alter table public.yield_records alter column quantity type numeric(10,2);
+-- No type change needed here — the column was already numeric(10,2) from
+-- table creation. (An explicit ALTER COLUMN TYPE, even to the same type,
+-- would fail once dashboard_stats depends on this column after the rename.)
 
 -- Standard weight-per-unit used only to compute the kg-equivalent for
 -- totals/insurance math. "Other" is treated 1:1 (assumed already farmer-
@@ -944,6 +925,7 @@ select
   (select count(*) from public.assistance_records where status = 'Pending' or status = 'Under Review') as pending_applications,
   (select count(*) from public.assistance_records where status = 'Released') as released_assistance;
 alter view public.dashboard_stats set (security_invoker = true);
+grant select on public.dashboard_stats to authenticated;
 
 create view public.yield_report as
 select
@@ -964,3 +946,45 @@ left join lateral (
 
 alter view public.yield_report set (security_invoker = true);
 grant select on public.yield_report to authenticated;
+
+-- farmer_directory (defined earlier in this file) summed y.kilograms for
+-- total_verified_yield; after the rename above that silently became
+-- sum(y.quantity) — the farmer's raw entered number, in whatever unit they
+-- picked (kg, Sacks, ...), which is meaningless once units are mixed.
+-- Re-point it at quantity_kg now that that column exists. Same column
+-- name/type/position as before, so CREATE OR REPLACE is safe here.
+create or replace view public.farmer_directory as
+select
+  f.*,
+  p.full_name,
+  p.email,
+  p.contact_number,
+  p.avatar_seed,
+  a.name as association_name,
+  coalesce(
+    (select array_agg(fc.crop_name) from public.farmer_crops fc where fc.farmer_id = f.id),
+    array[]::text[]
+  ) as crops,
+  coalesce((select sum(y.quantity_kg) from public.yield_records y where y.farmer_id = f.id and y.status = 'Verified'), 0) as total_verified_yield
+from public.farmers f
+join public.profiles p on p.id = f.id
+left join public.associations a on a.id = f.association_id;
+
+alter view public.farmer_directory set (security_invoker = true);
+
+
+-- ============================================================================
+-- MIGRATION — Admin can create farmer accounts without an Edge Function.
+-- profiles previously had NO insert/delete policy at all (only the
+-- service-role Edge Function could write to it). That Edge Function has been
+-- unreliable to deploy, so Add Farmer now creates the auth user with the
+-- standard client (via a session-isolated Supabase client) and inserts the
+-- profile/farmer rows directly as ADMIN — which needs these two policies.
+-- ============================================================================
+drop policy if exists "profiles_insert_admin" on public.profiles;
+create policy "profiles_insert_admin" on public.profiles for insert
+  with check (public.current_role() = 'admin');
+
+drop policy if exists "profiles_delete_admin" on public.profiles;
+create policy "profiles_delete_admin" on public.profiles for delete
+  using (public.current_role() = 'admin');
