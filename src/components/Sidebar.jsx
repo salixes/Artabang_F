@@ -47,16 +47,25 @@ const NAV = {
   president: [
     { to: "/president", label: "Dashboard", icon: "fa-chart-line", end: true },
     { to: "/president/notifications", label: "Notifications", icon: "fa-bell" },
-    { to: "/president/validation", label: "Farmer Validation", icon: "fa-user-check" },
     { to: "/president/association", label: "Membership Management", icon: "fa-people-group" },
-    { to: "/president/requests", label: "Farmers Profile", icon: "fa-file-circle-check" },
-    { to: "/president/crops", label: "Crop Registered Farmers", icon: "fa-tractor" },
-    { to: "/president/qualification", label: "Qualification Check", icon: "fa-clipboard-check" },
+    { to: "/president/farmers-profile", label: "Farmers Profile", icon: "fa-users" },
+    {
+      group: "Meetings & Attendance", icon: "fa-people-roof",
+      items: [
+        { to: "/president/meetings", label: "Meetings & Attendance" },
+      ],
+    },
+    { to: "/president/crops", label: "Crop/Plants Registered", icon: "fa-tractor" },
     { to: "/president/assistance", label: "Assistance Distribution", icon: "fa-hand-holding-dollar" },
+    {
+      group: "Qualification Check", icon: "fa-clipboard-check",
+      items: [
+        { to: "/president/qualification", label: "Qualification Check" },
+      ],
+    },
     { to: "/president/announcements", label: "Announcements", icon: "fa-bullhorn" },
-    { to: "/president/reports", label: "Transparency Reports", icon: "fa-chart-pie" },
+    { to: "/president/reports", label: "Transparency Reports", icon: "fa-file-invoice" },
     { to: "/president/policies", label: "Policy Management", icon: "fa-scroll" },
-    { to: "/president/meetings", label: "Meetings & Attendance", icon: "fa-people-roof" },
     { to: "/president/profile", label: "President Profile", icon: "fa-id-badge" },
     { to: "/president/settings", label: "Settings", icon: "fa-gear" },
   ],
