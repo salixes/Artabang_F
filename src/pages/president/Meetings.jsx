@@ -30,13 +30,13 @@ export default function Meetings() {
   useEffect(() => { load(); }, []);
 
   function openNew() {
-    setForm({ ...empty, association_id: associations[0]?.id || "" });
+    setForm(empty); // association_id "" = All Associations by default
     setOpen(true);
   }
 
   async function submit(e) {
     e.preventDefault();
-    const { error } = await supabase.from("meetings").insert({ ...form, created_by: profile.id });
+    const { error } = await supabase.from("meetings").insert({ ...form, association_id: form.association_id || null, created_by: profile.id });
     if (error) return showToast(error.message, "fa-triangle-exclamation");
     showToast("Meeting scheduled.", "fa-people-roof");
     setOpen(false);
@@ -55,39 +55,48 @@ export default function Meetings() {
     setAttendance(Object.fromEntries((data || []).map((a) => [a.farmer_id, a.present])));
   }
 
-  async function toggleAttend(farmerId) {
-    const present = !attendance[farmerId];
+  async function setAttend(farmerId, present) {
     setAttendance((prev) => ({ ...prev, [farmerId]: present }));
     await supabase.from("attendance").upsert({ meeting_id: attendanceRow.id, farmer_id: farmerId, present });
   }
 
-  const assocName = (id) => associations.find((a) => a.id === id)?.name;
-  const membersForMeeting = attendanceRow ? members.filter((m) => m.association_name === assocName(attendanceRow.association_id)) : [];
+  const assocName = (id) => associations.find((a) => a.id === id)?.name || "All Associations";
+  const membersForMeeting = attendanceRow
+    ? (attendanceRow.association_id ? members.filter((m) => m.association_name === assocName(attendanceRow.association_id)) : members)
+    : [];
+  const presentCount = membersForMeeting.filter((m) => attendance[m.id]).length;
 
   return (
     <section>
-      <div className="view-head"><h2><i className="fa-solid fa-people-roof"></i> Meetings &amp; Attendance</h2><button className="btn-primary" onClick={openNew}><i className="fa-solid fa-plus"></i> Schedule Meeting</button></div>
-      <div className="table-panel">
-        <table className="data-table">
-          <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Location</th><th>Association</th><th></th></tr></thead>
-          <tbody>
-            {rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No meetings scheduled yet.</td></tr>}
-            {rows.map((m) => (
-              <tr key={m.id}>
-                <td>{m.title}</td><td>{m.meeting_type}</td><td>{m.meeting_date}</td><td>{m.location}</td><td>{assocName(m.association_id) || "—"}</td>
-                <td>
-                  <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => openAttendance(m)}><i className="fa-solid fa-clipboard-user"></i></button>{" "}
-                  <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => remove(m.id)}><i className="fa-solid fa-trash"></i></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="no-print">
+        <div className="view-head"><h2><i className="fa-solid fa-people-roof"></i> Meetings &amp; Attendance</h2><button className="btn-primary" onClick={openNew}><i className="fa-solid fa-plus"></i> Schedule Meeting</button></div>
+        <div className="table-panel">
+          <table className="data-table">
+            <thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Location</th><th>Association</th><th></th></tr></thead>
+            <tbody>
+              {rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No meetings scheduled yet.</td></tr>}
+              {rows.map((m) => (
+                <tr key={m.id}>
+                  <td>{m.title}</td><td>{m.meeting_type}</td><td>{m.meeting_date}</td><td>{m.location}</td><td>{assocName(m.association_id)}</td>
+                  <td>
+                    <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => openAttendance(m)}><i className="fa-solid fa-clipboard-user"></i></button>{" "}
+                    <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => remove(m.id)}><i className="fa-solid fa-trash"></i></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Schedule Meeting" icon="fa-people-roof">
         <form className="modal-body" onSubmit={submit}>
-          <label>Association <select value={form.association_id} onChange={(e) => setForm({ ...form, association_id: e.target.value })} required>{associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+          <label>Association
+            <select value={form.association_id} onChange={(e) => setForm({ ...form, association_id: e.target.value })}>
+              <option value="">All Associations</option>
+              {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </label>
           <label>Title <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></label>
           <label>Type <select value={form.meeting_type} onChange={(e) => setForm({ ...form, meeting_type: e.target.value })}><option>Meeting</option><option>Gathering</option></select></label>
           <label>Date <input type="date" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} required /></label>
@@ -96,16 +105,36 @@ export default function Meetings() {
         </form>
       </Modal>
 
-      <Modal open={!!attendanceRow} onClose={() => setAttendanceRow(null)} title={`Attendance — ${attendanceRow?.title || ""}`} icon="fa-clipboard-user">
+      <Modal open={!!attendanceRow} onClose={() => setAttendanceRow(null)} title={`Attendance — ${attendanceRow?.title || ""}`} icon="fa-clipboard-user" wide>
         <div className="modal-body">
-          {membersForMeeting.length === 0 && <p className="hint-text">No members found for this association.</p>}
-          {membersForMeeting.map((m) => (
-            <label key={m.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-              <input type="checkbox" checked={!!attendance[m.id]} onChange={() => toggleAttend(m.id)} style={{ width: "auto" }} />
-              {m.full_name}
-            </label>
-          ))}
-          <div className="modal-actions"><button className="btn-primary" onClick={() => setAttendanceRow(null)}>Done</button></div>
+          <div className="no-print" style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+            <button className="btn-ghost" onClick={() => window.print()}><i className="fa-solid fa-print"></i> Print</button>
+          </div>
+          <div className="print-only print-report-header">
+            <h1>AgriTabang — Attendance Sheet</h1>
+            <p>{attendanceRow?.title} &middot; {attendanceRow?.meeting_date} &middot; {attendanceRow?.location}</p>
+            <p>{attendanceRow ? assocName(attendanceRow.association_id) : ""}</p>
+          </div>
+          <p className="hint-text no-print">{presentCount} of {membersForMeeting.length} marked present.</p>
+          {membersForMeeting.length === 0 && <p className="hint-text">No members found.</p>}
+          <table className="data-table print-table">
+            <thead><tr><th>Farmer</th><th style={{ width: 200 }}>Attendance</th></tr></thead>
+            <tbody>
+              {membersForMeeting.map((m) => (
+                <tr key={m.id}>
+                  <td>{m.full_name}</td>
+                  <td>
+                    <span className="no-print" style={{ display: "flex", gap: 6 }}>
+                      <button type="button" className={`btn-ghost ${attendance[m.id] === true ? "attend-active-present" : ""}`} style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={() => setAttend(m.id, true)}>Present</button>
+                      <button type="button" className={`btn-ghost ${attendance[m.id] === false ? "attend-active-absent" : ""}`} style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={() => setAttend(m.id, false)}>Absent</button>
+                    </span>
+                    <span className="print-only">{attendance[m.id] === true ? "Present" : attendance[m.id] === false ? "Absent" : "☐ Present  ☐ Absent"}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="modal-actions no-print"><button className="btn-primary" onClick={() => setAttendanceRow(null)}>Done</button></div>
         </div>
       </Modal>
     </section>

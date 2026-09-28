@@ -733,11 +733,18 @@ body.dark .modal-body input,body.dark .modal-body select,body.dark .modal-body t
 .rsbsa-footer-note{text-align:center;font-size:.7rem;font-weight:700;letter-spacing:.05em;margin-top:14px;}
 
 @media print{
-  .app, .topbar, .sidebar, .no-print{display:none !important;}
+  .topbar, .sidebar, .no-print{display:none !important;}
+  .main-wrap{margin:0 !important;}
   .content{margin:0 !important;padding:0 !important;}
   .rsbsa-print-page{border:none;padding:0;}
   body{background:#fff;}
+  .print-only{display:block !important;}
 }
+.print-only{display:none;}
+.print-report-header{text-align:center;margin-bottom:18px;border-bottom:2px solid #111;padding-bottom:10px;}
+.print-report-header h1{font-size:1.1rem;margin:0;}
+.print-report-header p{font-size:.8rem;color:#555;margin:4px 0 0;}
+.print-table th, .print-table td{font-size:.8rem;}
 
 /* ---- Prominent announcements strip (top of dashboards) ---- */
 .announce-top-strip{display:flex;flex-direction:column;gap:10px;margin-bottom:18px;}
@@ -757,3 +764,7 @@ body.dark .modal-body input,body.dark .modal-body select,body.dark .modal-body t
 /* Login form reuses .modal-body for the stacked label layout, but the card
    itself already has padding — avoid adding a second layer of it. */
 .login-card form.modal-body{padding:0;}
+
+/* ---- Attendance Present/Absent button states ---- */
+.attend-active-present{background:var(--resolved) !important;color:#fff !important;border-color:var(--resolved) !important;}
+.attend-active-absent{background:var(--danger) !important;color:#fff !important;border-color:var(--danger) !important;}

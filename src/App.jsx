@@ -26,13 +26,13 @@ import AdminAssistance from "./pages/admin/Assistance.jsx";
 import AdminAnnouncements from "./pages/admin/Announcements.jsx";
 
 import PresidentDashboard from "./pages/president/Dashboard.jsx";
-import Validation from "./pages/president/Validation.jsx";
+import FarmersProfile from "./pages/president/FarmersProfile.jsx";
+import TransparencyReports from "./pages/president/TransparencyReports.jsx";
 import PresidentCrops from "./pages/president/Crops.jsx";
 import Qualification from "./pages/president/Qualification.jsx";
 import AssistanceDistribution from "./pages/president/AssistanceDistribution.jsx";
 import Policies from "./pages/president/Policies.jsx";
 import Meetings from "./pages/president/Meetings.jsx";
-import PresidentRequests from "./pages/president/Requests.jsx";
 
 import Association from "./pages/shared/Association.jsx";
 import Reports from "./pages/shared/Reports.jsx";
@@ -88,15 +88,14 @@ export default function App() {
       <Route path="/president" element={<ProtectedRoute allow="president"><Layout role="president" /></ProtectedRoute>}>
         <Route index element={<PresidentDashboard />} />
         <Route path="notifications" element={<Notifications />} />
-        <Route path="validation" element={<Validation />} />
         <Route path="association" element={<Association scope="president" />} />
+        <Route path="farmers-profile" element={<FarmersProfile />} />
         <Route path="crops" element={<PresidentCrops />} />
         <Route path="qualification" element={<Qualification />} />
         <Route path="assistance" element={<AssistanceDistribution />} />
-        <Route path="reports" element={<Reports title="Transparency Reports" />} />
+        <Route path="reports" element={<TransparencyReports />} />
         <Route path="policies" element={<Policies />} />
         <Route path="meetings" element={<Meetings />} />
-        <Route path="requests" element={<PresidentRequests />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="profile" element={<StaffProfile roleLabel="Association President" />} />
         <Route path="settings" element={<Settings />} />
