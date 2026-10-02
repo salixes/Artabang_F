@@ -86,17 +86,24 @@ export default function FarmerProfile() {
     }
   }
 
+  const [otherCropText, setOtherCropText] = useState("");
+
   // ---- Crop change request (needs ADMIN approval before it takes effect) ----
   function openCropsRequest() {
     setCropsForm(directoryRow.crops || []);
+    setOtherCropText("");
     setCropsOpen(true);
   }
 
   async function submitCropsRequest(e) {
     e.preventDefault();
     setCropsSaving(true);
+    const finalCrops = cropsForm.filter((c) => c !== "Other");
+    if (cropsForm.includes("Other") && otherCropText.trim()) {
+      otherCropText.split(",").map((c) => c.trim()).filter(Boolean).forEach((c) => { if (!finalCrops.includes(c)) finalCrops.push(c); });
+    }
     const { error } = await supabase.from("crop_change_requests").insert({
-      farmer_id: farmer.id, old_crops: directoryRow.crops || [], new_crops: cropsForm,
+      farmer_id: farmer.id, old_crops: directoryRow.crops || [], new_crops: finalCrops,
     });
     setCropsSaving(false);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
@@ -191,10 +198,16 @@ export default function FarmerProfile() {
         <form className="modal-body" onSubmit={submitCropsRequest}>
           <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Changes to plants grown are important farm information — this will be reviewed by ADMIN before it takes effect.</p>
           <label>Plants Grown (hold Ctrl/Cmd to select multiple)
-            <select multiple size={6} value={cropsForm} onChange={(e) => setCropsForm(Array.from(e.target.selectedOptions, (o) => o.value))}>
+            <select multiple size={7} value={cropsForm} onChange={(e) => setCropsForm(Array.from(e.target.selectedOptions, (o) => o.value))}>
               {CROP_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
+              <option value="Other">Other (specify below)</option>
             </select>
           </label>
+          {cropsForm.includes("Other") && (
+            <label>Specify Other Crop(s) <span className="req-note">(comma-separated if more than one)</span>
+              <input type="text" value={otherCropText} onChange={(e) => setOtherCropText(e.target.value)} placeholder="e.g. Dragon Fruit, Malunggay" />
+            </label>
+          )}
           <div className="modal-actions"><button type="button" className="btn-ghost" onClick={() => setCropsOpen(false)}>Cancel</button><button type="submit" className="btn-primary" disabled={cropsSaving}>{cropsSaving ? "Submitting…" : <><i className="fa-solid fa-paper-plane"></i> Submit for Review</>}</button></div>
         </form>
       </Modal>

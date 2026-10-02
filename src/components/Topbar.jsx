@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
-  const { profile, logout } = useAuth();
+  const { profile, role, logout } = useAuth();
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
   const [notifOpen, setNotifOpen] = useState(false);
@@ -66,7 +66,12 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
             <h4>Notifications</h4>
             {notifications.length === 0 && <p className="hint-text">No notifications yet.</p>}
             {notifications.map((n) => (
-              <div className="notif-item" key={n.id}>
+              <div
+                className="notif-item"
+                key={n.id}
+                style={n.category === "announcement" ? { cursor: "pointer" } : undefined}
+                onClick={() => { if (n.category === "announcement") { setNotifOpen(false); navigate(`/${role}/announcements`); } }}
+              >
                 <i className={`fa-solid ${n.icon || "fa-bell"} ${n.read ? "" : "gold"}`}></i>
                 <p dangerouslySetInnerHTML={{ __html: n.message }} />
                 <small>{new Date(n.created_at).toLocaleString("en-PH")}</small>

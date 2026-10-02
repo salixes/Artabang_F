@@ -988,3 +988,26 @@ create policy "profiles_insert_admin" on public.profiles for insert
 drop policy if exists "profiles_delete_admin" on public.profiles;
 create policy "profiles_delete_admin" on public.profiles for delete
   using (public.current_role() = 'admin');
+
+-- ============================================================================
+-- MIGRATION — Announcements automatically fan out to notifications, and each
+-- notification remembers what kind of thing it's about so the frontend can
+-- route a click to the right page (e.g. announcements -> the Announcements page).
+-- ============================================================================
+alter table public.notifications add column if not exists category text;
+
+create or replace function public.notify_on_new_announcement() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.notifications (recipient_id, icon, message, category)
+  select p.id, coalesce(new.icon, 'fa-bullhorn'), new.title, 'announcement'
+  from public.profiles p
+  where p.id is distinct from new.posted_by;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_on_new_announcement on public.announcements;
+create trigger trg_notify_on_new_announcement
+  after insert on public.announcements
+  for each row execute function public.notify_on_new_announcement();

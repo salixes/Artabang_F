@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { supabase } from "../../lib/supabaseClient";
 
 const ROLE_TABS = [
   { key: "farmer", label: "Farmer", icon: "fa-user" },
@@ -19,15 +20,31 @@ export default function Login() {
 
   if (!loading && session && role) return <Navigate to={`/${role}`} replace />;
 
+  const ROLE_LABEL = { farmer: "Farmer", admin: "ADMIN", president: "Association President" };
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
     try {
-      await login(email, password);
-      // AuthContext will populate `role` on the next render once the
-      // profile row loads; App.jsx's redirect route handles sending
-      // the user to the right dashboard.
+      const data = await login(email, password);
+      // Confirm this account's real role matches the tab the person picked
+      // — logging in as an ADMIN account from the Farmer tab (or any other
+      // mismatch) is rejected immediately, before they ever reach a dashboard.
+      const { data: profileRow, error: profileErr } = await supabase
+        .from("profiles").select("role").eq("id", data.user.id).single();
+      if (profileErr || !profileRow) {
+        await supabase.auth.signOut();
+        setError("Could not verify this account's role. Please try again.");
+        return;
+      }
+      if (profileRow.role !== activeTab) {
+        await supabase.auth.signOut();
+        setError(`This account is registered as ${ROLE_LABEL[profileRow.role] || profileRow.role}, not ${ROLE_LABEL[activeTab]}. Select the correct tab above and try again.`);
+        return;
+      }
+      // Role matches — AuthContext's onAuthStateChange will pick up the
+      // session and populate `role`; the redirect above handles the rest.
     } catch (err) {
       setError(err.message || "Invalid email or password.");
     } finally {

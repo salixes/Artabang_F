@@ -29,10 +29,18 @@ const emptyAdd = {
   within_ancestral_domain: false, agrarian_reform_beneficiary: false, organic_agriculture_practitioner: false,
   ownership_tenure_type: OWNERSHIP_TENURE_OPTIONS[0], land_owner_name: "",
   cropping_schedule: "", commodity: "", commodity_size: "", no_of_heads_trees: "",
-  crops: [],
+  crops: [], otherCropText: "",
   // Part 4: Consent
   consent_given: false, consent_date: "",
 };
+
+function resolveCrops(form) {
+  const finalCrops = (form.crops || []).filter((c) => c !== "Other");
+  if (form.crops?.includes("Other") && form.otherCropText?.trim()) {
+    form.otherCropText.split(",").map((c) => c.trim()).filter(Boolean).forEach((c) => { if (!finalCrops.includes(c)) finalCrops.push(c); });
+  }
+  return finalCrops;
+}
 
 function fullNameOf(f) {
   return [f.surname, f.first_name, f.middle_name, f.extension_name].filter(Boolean).join(", ") || f.full_name;
@@ -100,7 +108,7 @@ export default function AdminFarmers() {
     let data, error;
     try {
       ({ data, error } = await supabase.functions.invoke("admin-create-user", {
-        body: { ...addForm, full_name, role: "farmer", location: addForm.farm_location || addForm.house_no_purok, contact_number: addForm.mobile_number },
+        body: { ...addForm, crops: resolveCrops(addForm), full_name, role: "farmer", location: addForm.farm_location || addForm.house_no_purok, contact_number: addForm.mobile_number },
       }));
     } catch (err) {
       error = err;
@@ -130,7 +138,8 @@ export default function AdminFarmers() {
   async function submitEdit(e) {
     e.preventDefault();
     setSaving(true);
-    const { crops, email, password, ...farmerFields } = editForm;
+    const { crops: _rawCrops, email, password, otherCropText, ...farmerFields } = editForm;
+    const crops = resolveCrops(editForm);
     delete farmerFields.id; delete farmerFields.full_name; delete farmerFields.association_name;
     delete farmerFields.total_verified_yield; delete farmerFields.avatar_seed; delete farmerFields.contact_number;
     // Blank strings must become null, not "" — several optional fields
@@ -355,10 +364,16 @@ function ParcelFields({ f, set }) {
         <label className="rsbsa-check"><input type="checkbox" checked={f.organic_agriculture_practitioner} onChange={(e) => set({ ...f, organic_agriculture_practitioner: e.target.checked })} /> Organic Agriculture?</label>
       </div>
       <label>Plants Grown (for Crop Registration / Insurance modules)
-        <select multiple size={5} value={f.crops} onChange={(e) => set({ ...f, crops: Array.from(e.target.selectedOptions, (o) => o.value) })}>
+        <select multiple size={6} value={f.crops} onChange={(e) => set({ ...f, crops: Array.from(e.target.selectedOptions, (o) => o.value) })}>
           {CROP_LIST.map((c) => <option key={c}>{c}</option>)}
+          <option value="Other">Other (specify below)</option>
         </select>
       </label>
+      {f.crops.includes("Other") && (
+        <label>Specify Other Crop(s) <span className="req-note">(comma-separated if more than one)</span>
+          <input type="text" value={f.otherCropText || ""} onChange={(e) => set({ ...f, otherCropText: e.target.value })} placeholder="e.g. Dragon Fruit, Malunggay" />
+        </label>
+      )}
     </fieldset>
   );
 }
