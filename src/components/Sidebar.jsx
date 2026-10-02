@@ -49,17 +49,11 @@ const NAV = {
     { to: "/president/notifications", label: "Notifications", icon: "fa-bell" },
     { to: "/president/association", label: "Membership Management", icon: "fa-people-group" },
     { to: "/president/farmers-profile", label: "Farmers Profile", icon: "fa-users" },
-    {
-      group: "Meetings & Attendance", icon: "fa-people-roof",
-      items: [
-        { to: "/president/meetings", label: "Meetings & Attendance" },
-      ],
-    },
     { to: "/president/crops", label: "Crop/Plants Registered", icon: "fa-tractor" },
-    { to: "/president/assistance", label: "Assistance Distribution", icon: "fa-hand-holding-dollar" },
     {
-      group: "Qualification Check", icon: "fa-clipboard-check",
+      group: "Assistance Distribution", icon: "fa-hand-holding-dollar",
       items: [
+        { to: "/president/assistance", label: "Assistance Distribution" },
         { to: "/president/qualification", label: "Qualification Check" },
       ],
     },

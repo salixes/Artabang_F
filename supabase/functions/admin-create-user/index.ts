@@ -97,6 +97,9 @@ serve(async (req) => {
         farm_size: farm_size || null,
         is_association_member: !!is_association_member,
         association_id: association_id ?? null,
+        // Admin-created accounts are validated immediately — an ADMIN
+        // personally enrolling the farmer already IS the validation step.
+        validated: true, validated_by: userData.user.id, validated_at: new Date().toISOString(),
         surname: surname ?? null, first_name: first_name ?? null, middle_name: middle_name ?? null,
         extension_name: extension_name ?? null, sex: sex ?? null, date_of_birth: date_of_birth || null,
         place_of_birth: place_of_birth ?? null, mobile_number: mobile_number ?? contact_number ?? null,

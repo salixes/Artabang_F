@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { StatusBadge } from "../../components/Badges.jsx";
 
 export default function FarmersProfile() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [detailRow, setDetailRow] = useState(null);
@@ -21,7 +23,10 @@ export default function FarmersProfile() {
     <section>
       <div className="view-head">
         <h2><i className="fa-solid fa-users"></i> Farmers Profile</h2>
-        <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search farmer name or location…" /></div>
+        <div className="head-actions">
+          <button className="btn-ghost" onClick={() => navigate("/president/meetings")}><i className="fa-solid fa-clipboard-user"></i> Attendance</button>
+          <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search farmer name or location…" /></div>
+        </div>
       </div>
       <p className="hint-text"><i className="fa-solid fa-shield-halved"></i> Shown here is only what's needed for association coordination — personal details like birthdate, civil status, ID numbers, and full address are kept private in line with the Data Privacy Act.</p>
 
