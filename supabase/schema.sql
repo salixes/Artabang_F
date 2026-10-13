@@ -1011,3 +1011,32 @@ drop trigger if exists trg_notify_on_new_announcement on public.announcements;
 create trigger trg_notify_on_new_announcement
   after insert on public.announcements
   for each row execute function public.notify_on_new_announcement();
+
+-- ============================================================================
+-- MIGRATION — Match the official RSBSA enrollment form more closely: mobile
+-- number ownership, mother's name split into parts, additional organization
+-- memberships, land ownership proof/rotational tiller, and per-crop
+-- heads/trees + organic flag (the real form tracks these per cropping row,
+-- not just once per farmer).
+-- ============================================================================
+alter table public.farmers drop constraint if exists farmers_civil_status_check;
+alter table public.farmers add constraint farmers_civil_status_check
+  check (civil_status is null or civil_status in ('Single','Married','Widow/Widower','Legally Separated'));
+
+alter table public.farmers add column if not exists own_mobile_number boolean not null default true;
+alter table public.farmers add column if not exists mobile_owner_name text;
+alter table public.farmers add column if not exists mobile_owner_relationship text;
+
+alter table public.farmers add column if not exists mother_first_name text;
+alter table public.farmers add column if not exists mother_middle_name text;
+alter table public.farmers add column if not exists mother_surname text;
+
+alter table public.farmers add column if not exists organization_2 text;
+alter table public.farmers add column if not exists organization_3 text;
+
+alter table public.farmers add column if not exists proof_of_land_ownership text;
+alter table public.farmers add column if not exists rotational_tiller_name text;
+
+alter table public.crop_registrations add column if not exists cropping_schedule text;
+alter table public.crop_registrations add column if not exists no_of_heads_trees text;
+alter table public.crop_registrations add column if not exists is_organic boolean not null default false;

@@ -8,6 +8,7 @@ import { CROP_LIST, INSURANCE_SOURCES } from "../../lib/businessRules";
 
 const empty = {
   crop_name: CROP_LIST[0], area: "", planting_date: "", variety: "", land_category: "Irrigated", tenurial_status: "Owner",
+  cropping_schedule: "", no_of_heads_trees: "", is_organic: false,
   register_insurance: false, coverage_start_date: "", coverage_end_date: "", insurance_source: INSURANCE_SOURCES[0],
 };
 
@@ -119,8 +120,11 @@ export default function FarmerCrops() {
           <label>Variety <input type="text" value={form.variety} onChange={(e) => setForm({ ...form, variety: e.target.value })} placeholder="e.g. NK6 Hybrid" /></label>
           <label>Land Category <select value={form.land_category} onChange={(e) => setForm({ ...form, land_category: e.target.value })}><option>Irrigated</option><option>Rainfed</option><option>Upland</option></select></label>
           <label>Tenurial Status <select value={form.tenurial_status} onChange={(e) => setForm({ ...form, tenurial_status: e.target.value })}><option>Owner</option><option>Tenant</option><option>Lessee</option></select></label>
+          <label>Cropping Schedule <input type="text" value={form.cropping_schedule} onChange={(e) => setForm({ ...form, cropping_schedule: e.target.value })} placeholder="e.g. Year-round, Wet Season" /></label>
+          <label>No. of Heads/Trees <input type="text" value={form.no_of_heads_trees} onChange={(e) => setForm({ ...form, no_of_heads_trees: e.target.value })} placeholder="If applicable" /></label>
 
           <div className="rsbsa-checks">
+            <label className="rsbsa-check"><input type="checkbox" checked={form.is_organic} onChange={(e) => setForm({ ...form, is_organic: e.target.checked })} /> Organic Agriculture</label>
             <label className="rsbsa-check"><input type="checkbox" checked={form.register_insurance} onChange={(e) => setForm({ ...form, register_insurance: e.target.checked })} /> Also register this crop for Crop Insurance</label>
           </div>
 

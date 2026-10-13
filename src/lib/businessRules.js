@@ -8,17 +8,18 @@ export const CROP_LIST = [
 
 // RSBSA (Registry System for Basic Sectors in Agriculture) reference lists
 export const SEX_OPTIONS = ["Male", "Female"];
-export const CIVIL_STATUS_OPTIONS = ["Single", "Married", "Widowed", "Separated", "Divorced"];
+export const CIVIL_STATUS_OPTIONS = ["Single", "Married", "Widow/Widower", "Legally Separated"];
+export const RELIGION_OPTIONS = ["Christianity", "Islam", "Others", "None"];
 export const EDUCATION_OPTIONS = [
-  "None", "Elementary Level", "Elementary Graduate", "High School Level",
-  "High School Graduate", "Vocational", "College Level", "College Graduate", "Post Graduate",
+  "Pre-school", "Elementary", "Junior High School (K-12)", "Senior High School (K-12)",
+  "High School (non-K12)", "Vocational", "College", "Post-graduate", "None",
 ];
 export const PROOF_OF_IDENTITY_OPTIONS = [
   "Philippine National ID", "Voter's ID / Certificate", "Barangay Certification",
   "Driver's License", "Passport", "PhilHealth ID", "SSS/GSIS ID", "Postal ID", "Other Government-Issued ID",
 ];
 export const FARM_TYPE_OPTIONS = ["Lowland", "Upland", "Coastal/Fishpond", "Mixed"];
-export const OWNERSHIP_TENURE_OPTIONS = ["Registered Owner", "Tenant", "Lessee", "CLOA Holder", "Others"];
+export const OWNERSHIP_TENURE_OPTIONS = ["Registered Owner", "Lessee", "Tenant", "Others"];
 export const DEFAULT_REGION = "Region X (Northern Mindanao)";
 export const DEFAULT_PROVINCE = "Bukidnon";
 export const DEFAULT_CITY_MUNICIPALITY = "Manolo Fortich";
