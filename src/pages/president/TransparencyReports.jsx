@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
+import YieldReportSection from "../../components/YieldReportSection.jsx";
 import { ASSISTANCE_TYPES } from "../../lib/businessRules";
 
 const REPORT_OPTIONS = [
@@ -107,6 +108,8 @@ export default function TransparencyReports() {
         </div>
 
         <p className="hint-text no-print">{filteredRows.length} record{filteredRows.length === 1 ? "" : "s"} in this report.</p>
+
+        <YieldReportSection />
       </div>
     </section>
   );

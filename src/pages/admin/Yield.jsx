@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useToast } from "../../context/ToastContext.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
+import { yieldUnitText } from "../../lib/businessRules";
 
 const REPORT_OPTIONS = [
   { value: "all", label: "All Yield Records" },
@@ -22,7 +23,7 @@ function ReportTable({ rows, onVerify, onReject }) {
           <tr key={r.id}>
             <td>{r.farmer_name}</td><td>{r.crop_name}</td><td>{r.farm_area ? `${r.farm_area} ha` : "—"}</td>
             <td>{r.planting_date || "—"}</td><td>{r.harvest_date}</td>
-            <td>{Number(r.quantity).toLocaleString()}</td><td>{r.unit}</td>
+            <td>{Number(r.quantity).toLocaleString()}</td><td>{yieldUnitText(r)}</td>
             <td>{new Date(r.submitted_at).toLocaleDateString("en-PH")}</td>
             <td><StatusBadge status={r.status} /></td>
             <td>{r.verified_by_name || "—"}</td>

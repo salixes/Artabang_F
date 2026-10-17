@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
+import YieldReportSection from "../../components/YieldReportSection.jsx";
 import { ASSISTANCE_TYPES, ASSISTANCE_STATUSES, ASSISTANCE_SOURCES } from "../../lib/businessRules";
 
 export default function Reports({ title = "Assistance Reports" }) {
@@ -46,7 +47,7 @@ export default function Reports({ title = "Assistance Reports" }) {
           <h2><i className="fa-solid fa-file-invoice"></i> {title}</h2>
           <button className="btn-primary" onClick={() => window.print()}><i className="fa-solid fa-print"></i> Print</button>
         </div>
-        <p className="hint-text"><i className="fa-solid fa-circle-info"></i> A plain, printable record of assistance distribution. Filter below, then Print for a physical or PDF copy.</p>
+        <p className="hint-text"><i className="fa-solid fa-circle-info"></i> A plain, printable record of assistance distribution and the yield report. Filter below, then Print for a physical or PDF copy.</p>
 
         <div className="panel" style={{ marginBottom: 18 }}>
           <div className="panel-head"><h3>Filters</h3><button className="btn-ghost" onClick={clearFilters}>Clear</button></div>
@@ -94,6 +95,8 @@ export default function Reports({ title = "Assistance Reports" }) {
       </div>
 
       <p className="hint-text no-print">{filtered.length} record{filtered.length === 1 ? "" : "s"} in this report.</p>
+
+      <YieldReportSection farmer={farmerFilter} dateFrom={dateFrom} dateTo={dateTo} />
     </section>
   );
 }

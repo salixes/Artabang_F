@@ -17,7 +17,7 @@ export default function Qualification() {
     if (!selected) { setCtx(null); return; }
     (async () => {
       const [{ data: crops }, { data: yields }, { data: insurance }, { data: assistance }] = await Promise.all([
-        supabase.from("crop_registrations").select("id").eq("farmer_id", selected),
+        supabase.from("crop_registrations").select("id").eq("farmer_id", selected).eq("status", "Verified"),
         supabase.from("yield_records").select("id").eq("farmer_id", selected).eq("status", "Verified"),
         supabase.from("insurance_registrations").select("id").eq("farmer_id", selected),
         supabase.from("assistance_records").select("assistance_type, status").eq("farmer_id", selected),

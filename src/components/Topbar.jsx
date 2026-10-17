@@ -2,9 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
+import { notificationPath } from "../lib/assistancePrograms";
 
 export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
   const { profile, role, logout } = useAuth();
+  const { dark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
   const [notifOpen, setNotifOpen] = useState(false);
@@ -57,6 +60,16 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
           </div>
         </div>
 
+        {/* sun = click for light mode (shown in dark) · moon = click for dark mode (shown in light) */}
+        <button
+          className="icon-btn theme-toggle"
+          onClick={toggleTheme}
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          title={dark ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          <i className={`fa-solid ${dark ? "fa-sun" : "fa-moon"}`}></i>
+        </button>
+
         <div className="notif-wrap">
           <button className="icon-btn" onClick={() => { setNotifOpen((v) => !v); setAvatarOpen(false); if (!notifOpen) markAllRead(); }} aria-label="Notifications">
             <i className="fa-solid fa-bell"></i>
@@ -69,8 +82,8 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
               <div
                 className="notif-item"
                 key={n.id}
-                style={n.category === "announcement" ? { cursor: "pointer" } : undefined}
-                onClick={() => { if (n.category === "announcement") { setNotifOpen(false); navigate(`/${role}/announcements`); } }}
+                style={notificationPath(n, role) ? { cursor: "pointer" } : undefined}
+                onClick={() => { const to = notificationPath(n, role); if (to) { setNotifOpen(false); navigate(to); } }}
               >
                 <i className={`fa-solid ${n.icon || "fa-bell"} ${n.read ? "" : "gold"}`}></i>
                 <p dangerouslySetInnerHTML={{ __html: n.message }} />

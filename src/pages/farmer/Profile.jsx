@@ -154,7 +154,6 @@ export default function FarmerProfile() {
             <li><span>Location</span><b>{directoryRow.location || "—"}</b></li>
             <li><span>Farm Size</span><b>{directoryRow.farm_size ? `${directoryRow.farm_size} ha` : "—"}</b></li>
             <li><span>Association</span><b>{directoryRow.is_association_member ? (directoryRow.association_name || "Member") : "Not a member"}</b></li>
-            <li><span>Validation Status</span><b>{directoryRow.validated ? "Validated" : "Pending Validation"}</b></li>
             <li><span>Last Updated</span><b>{new Date(directoryRow.updated_at).toLocaleString("en-PH")}</b></li>
           </ul>
 

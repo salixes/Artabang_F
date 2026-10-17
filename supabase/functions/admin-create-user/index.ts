@@ -50,14 +50,20 @@ serve(async (req) => {
       location, farm_size, is_association_member, association_id, crops,
       // RSBSA fields (all optional — only stored when role === "farmer")
       surname, first_name, middle_name, extension_name, sex, date_of_birth,
-      place_of_birth, mobile_number, mothers_maiden_name, civil_status,
+      place_of_birth, mobile_number, own_mobile_number, mobile_owner_name, mobile_owner_relationship,
+      mother_first_name, mother_middle_name, mother_surname, civil_status,
       spouse_name, religion, house_no_purok, street_sitio_subdivision,
       barangay, city_municipality, province, region, highest_formal_education,
       proof_of_identity, id_document_number, rsbsa_number, is_icc_ip, is_pwd,
       is_4ps_beneficiary, is_farmer, is_farmworker, is_fisherfolk, is_agri_youth,
+      organization_2, organization_3,
       farm_location, farm_type, within_ancestral_domain, agrarian_reform_beneficiary,
-      organic_agriculture_practitioner, ownership_tenure_type, land_owner_name,
+      organic_agriculture_practitioner, proof_of_land_ownership, ownership_tenure_type,
+      land_owner_name, rotational_tiller_name,
       cropping_schedule, commodity, commodity_size, no_of_heads_trees,
+      consent_given, consent_date,
+      // the complete RSBSA Enrollment Form answers (every box on both long bond sheets)
+      rsbsa_form,
     } = body;
 
     if (!email || !password || !full_name) {
@@ -103,8 +109,12 @@ serve(async (req) => {
         surname: surname ?? null, first_name: first_name ?? null, middle_name: middle_name ?? null,
         extension_name: extension_name ?? null, sex: sex ?? null, date_of_birth: date_of_birth || null,
         place_of_birth: place_of_birth ?? null, mobile_number: mobile_number ?? contact_number ?? null,
-        mothers_maiden_name: mothers_maiden_name ?? null, civil_status: civil_status ?? null,
+        own_mobile_number: own_mobile_number ?? true, mobile_owner_name: mobile_owner_name ?? null,
+        mobile_owner_relationship: mobile_owner_relationship ?? null,
+        mother_first_name: mother_first_name ?? null, mother_middle_name: mother_middle_name ?? null,
+        mother_surname: mother_surname ?? null, civil_status: civil_status ?? null,
         spouse_name: spouse_name ?? null, religion: religion ?? null,
+        organization_2: organization_2 ?? null, organization_3: organization_3 ?? null,
         house_no_purok: house_no_purok ?? null, street_sitio_subdivision: street_sitio_subdivision ?? null,
         barangay: barangay ?? "Lindaban", city_municipality: city_municipality ?? "Manolo Fortich",
         province: province ?? "Bukidnon", region: region ?? "Region X (Northern Mindanao)",
@@ -114,9 +124,13 @@ serve(async (req) => {
         is_farmer: is_farmer ?? true, is_farmworker: !!is_farmworker, is_fisherfolk: !!is_fisherfolk, is_agri_youth: !!is_agri_youth,
         farm_location: farm_location ?? null, farm_type: farm_type ?? null,
         within_ancestral_domain: !!within_ancestral_domain, agrarian_reform_beneficiary: !!agrarian_reform_beneficiary,
-        organic_agriculture_practitioner: !!organic_agriculture_practitioner, ownership_tenure_type: ownership_tenure_type ?? null,
-        land_owner_name: land_owner_name ?? null, cropping_schedule: cropping_schedule ?? null,
+        organic_agriculture_practitioner: !!organic_agriculture_practitioner,
+        proof_of_land_ownership: proof_of_land_ownership ?? null, ownership_tenure_type: ownership_tenure_type ?? null,
+        land_owner_name: land_owner_name ?? null, rotational_tiller_name: rotational_tiller_name ?? null,
+        cropping_schedule: cropping_schedule ?? null,
         commodity: commodity ?? null, commodity_size: commodity_size || null, no_of_heads_trees: no_of_heads_trees ?? null,
+        consent_given: !!consent_given, consent_date: consent_date || null,
+        rsbsa_form: rsbsa_form ?? null,
       });
       if (farmerErr) {
         await admin.auth.admin.deleteUser(newUserId);

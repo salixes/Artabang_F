@@ -11,7 +11,13 @@ if (!url || !anonKey) {
   );
 }
 
-export const supabase = createClient(url, anonKey, {
+// Never throw while the app loads: without a .env the page would be completely blank.
+// main.jsx shows a clear "missing .env" screen instead (see MissingEnv).
+export const hasSupabaseEnv = !!(url && anonKey);
+const safeUrl = url || "http://localhost:54321";
+const safeKey = anonKey || "missing-anon-key";
+
+export const supabase = createClient(safeUrl, safeKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -23,7 +29,7 @@ export const supabase = createClient(url, anonKey, {
 // client would sign the browser in as the newly created user, kicking the
 // admin out of their own session — this isolated client lets ADMIN create a
 // farmer's auth account without affecting their own login at all.
-export const supabaseAuthOnly = createClient(url, anonKey, {
+export const supabaseAuthOnly = createClient(safeUrl, safeKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
-import { StatusBadge } from "../../components/Badges.jsx";
 
 export default function FarmersProfile() {
   const navigate = useNavigate();
@@ -32,7 +31,7 @@ export default function FarmersProfile() {
 
       <div className="table-panel">
         <table className="data-table">
-          <thead><tr><th>Farmer</th><th>Barangay</th><th>Crops Grown</th><th>Association</th><th>Validation</th><th></th></tr></thead>
+          <thead><tr><th>Farmer</th><th>Barangay</th><th>Crops Grown</th><th>Association</th><th></th></tr></thead>
           <tbody>
             {filtered.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No farmers found.</td></tr>}
             {filtered.map((f) => (
@@ -41,7 +40,6 @@ export default function FarmersProfile() {
                 <td>{f.barangay || f.location || "—"}</td>
                 <td>{(f.crops || []).join(", ") || "—"}</td>
                 <td>{f.association_name || "Not a member"}</td>
-                <td><StatusBadge status={f.validated ? "Verified" : "Pending"} /></td>
                 <td><button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => setDetailRow(f)}><i className="fa-solid fa-eye"></i></button></td>
               </tr>
             ))}
@@ -60,7 +58,6 @@ export default function FarmersProfile() {
                 <li><span>Crops Grown</span><b>{(detailRow.crops || []).join(", ") || "—"}</b></li>
                 <li><span>Association</span><b>{detailRow.association_name || "Not a member"}</b></li>
                 <li><span>Total Verified Yield</span><b>{Number(detailRow.total_verified_yield).toLocaleString()} kg</b></li>
-                <li><span>Validation Status</span><b>{detailRow.validated ? "Validated" : "Pending"}</b></li>
               </ul>
               <div className="modal-actions"><button className="btn-primary" onClick={() => setDetailRow(null)}>Close</button></div>
             </div>
