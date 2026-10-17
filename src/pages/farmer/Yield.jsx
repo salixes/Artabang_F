@@ -4,9 +4,12 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
-import { CROP_LIST, YIELD_UNITS, YIELD_UNIT_LABELS } from "../../lib/businessRules";
+import { CROP_LIST, YIELD_UNITS, YIELD_UNIT_LABELS, yieldUnitText } from "../../lib/businessRules";
 
-const empty = { crop_name: CROP_LIST[0], season: "", quantity: "", unit: "kg", harvest_date: "" };
+const OTHER = "Other";
+const titleCase = (t) => t.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
+const empty = { crop_name: CROP_LIST[0], crop_other: "", season: "", quantity: "", unit: "kg", unit_other: "", kg_per_unit: "", harvest_date: "" };
 
 export default function FarmerYield() {
   const { farmer } = useAuth();
@@ -30,8 +33,17 @@ export default function FarmerYield() {
       showToast("Yield quantity must be greater than zero.", "fa-triangle-exclamation");
       return;
     }
+    if (form.crop_name === OTHER && !form.crop_other.trim()) return showToast("Please specify which crop / plant it is.", "fa-triangle-exclamation");
+    if (form.unit === OTHER && !form.unit_other.trim()) return showToast("Please specify exactly what unit you used.", "fa-triangle-exclamation");
     setSaving(true);
-    const { error } = await supabase.from("yield_records").insert({ ...form, farmer_id: farmer.id });
+    const payload = {
+      farmer_id: farmer.id,
+      crop_name: form.crop_name === OTHER ? titleCase(form.crop_other) : form.crop_name,
+      season: form.season, quantity: form.quantity, unit: form.unit, harvest_date: form.harvest_date,
+      unit_other: form.unit === OTHER ? form.unit_other.trim() : null,
+      kg_per_unit: form.unit === OTHER && form.kg_per_unit ? Number(form.kg_per_unit) : null,
+    };
+    const { error } = await supabase.from("yield_records").insert(payload);
     setSaving(false);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
     showToast("Yield reported — pending verification.", "fa-wheat-awn");
@@ -68,7 +80,7 @@ export default function FarmerYield() {
             {filteredRows.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No yield reports yet.</td></tr>}
             {filteredRows.map((r) => (
               <tr key={r.id}>
-                <td>{r.crop_name}</td><td>{r.season}</td><td>{Number(r.quantity).toLocaleString()}</td><td>{YIELD_UNIT_LABELS[r.unit] || r.unit}</td><td>{r.harvest_date}</td>
+                <td>{r.crop_name}</td><td>{r.season}</td><td>{Number(r.quantity).toLocaleString()}</td><td>{yieldUnitText(r)}</td><td>{r.harvest_date}</td>
                 <td><StatusBadge status={r.status} /></td>
                 <td>{r.status === "Pending" && <button className="btn-ghost" onClick={() => remove(r.id)}><i className="fa-solid fa-trash"></i></button>}</td>
               </tr>
@@ -79,13 +91,20 @@ export default function FarmerYield() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Report Yield" icon="fa-wheat-awn">
         <form className="modal-body" onSubmit={submit}>
-          <label>Crop / Plant Name <select value={form.crop_name} onChange={(e) => setForm({ ...form, crop_name: e.target.value })}>{CROP_LIST.map((c) => <option key={c}>{c}</option>)}</select></label>
+          <label>Crop / Plant Name <select value={form.crop_name} onChange={(e) => setForm({ ...form, crop_name: e.target.value })}>{CROP_LIST.map((c) => <option key={c}>{c}</option>)}<option value={OTHER}>Other (specify)</option></select></label>
+          {form.crop_name === OTHER && <label>What crop / plant is it? <input type="text" value={form.crop_other} onChange={(e) => setForm({ ...form, crop_other: e.target.value })} placeholder="e.g. Squash, Peanut, Taro" required /></label>}
           <label>Season <input type="text" value={form.season} onChange={(e) => setForm({ ...form, season: e.target.value })} placeholder="e.g. Wet Season 2026" required /></label>
           <div style={{ display: "flex", gap: 10 }}>
             <label style={{ flex: 1 }}>Yield Quantity <input type="number" step="0.1" min="0.1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} required /></label>
-            <label style={{ flex: 1 }}>Unit <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{YIELD_UNITS.map((u) => <option key={u} value={u}>{YIELD_UNIT_LABELS[u]}</option>)}</select></label>
+            <label style={{ flex: 1 }}>Unit <select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{YIELD_UNITS.map((u) => <option key={u} value={u}>{u === OTHER ? "Other (specify)" : YIELD_UNIT_LABELS[u]}</option>)}</select></label>
           </div>
-          {form.unit !== "kg" && <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-circle-info"></i> For reports and insurance estimates, {YIELD_UNIT_LABELS[form.unit]} are converted to a standard kg-equivalent ({form.unit === "Other" ? "assumed 1:1" : "50 kg each"}).</p>}
+          {form.unit === OTHER && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <label style={{ flex: 1 }}>What unit is it exactly? <input type="text" value={form.unit_other} onChange={(e) => setForm({ ...form, unit_other: e.target.value })} placeholder="e.g. Bundles, Crates, Tons, Pieces" required /></label>
+              <label style={{ flex: 1 }}>About how many kg is 1 {form.unit_other.trim() || "unit"}? (optional) <input type="number" step="0.1" min="0.1" value={form.kg_per_unit} onChange={(e) => setForm({ ...form, kg_per_unit: e.target.value })} placeholder="e.g. 25" /></label>
+            </div>
+          )}
+          {form.unit !== "kg" && <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-circle-info"></i> For reports and insurance estimates this is converted to a kg-equivalent ({form.unit === OTHER ? (form.kg_per_unit ? `${form.kg_per_unit} kg per ${form.unit_other.trim() || "unit"}` : "assumed 1:1 — add the kg per unit above for a more accurate figure") : "50 kg each"}).</p>}
           <label>Harvest Date <input type="date" value={form.harvest_date} onChange={(e) => setForm({ ...form, harvest_date: e.target.value })} required /></label>
           <div className="modal-actions"><button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button><button type="submit" className="btn-primary" disabled={saving}><i className="fa-solid fa-floppy-disk"></i> {saving ? "Saving…" : "Save"}</button></div>
         </form>

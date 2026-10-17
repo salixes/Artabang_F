@@ -51,6 +51,8 @@ export function calculateInsuranceCoverage({ crop_name, area }, verifiedYields, 
 
 export const YIELD_UNITS = ["kg", "Sacks", "Cavans", "Other"];
 export const YIELD_UNIT_LABELS = { kg: "Kilograms (kg)", Sacks: "Sacks", Cavans: "Cavans", Other: "Other" };
+// What to show for a yield record's unit: for "Other" it is the unit the farmer actually specified.
+export const yieldUnitText = (r) => (r.unit === "Other" ? (r.unit_other || "Other") : (YIELD_UNIT_LABELS[r.unit] || r.unit));
 
 export const ASSISTANCE_TYPES = ["Cash Aid", "Seeds", "Fertilizer", "Farming Equipment", "Crop Insurance"];
 export const ASSISTANCE_SOURCES = ["MAO", "Department of Agriculture", "Other Program"];
@@ -107,7 +109,7 @@ export const ASSISTANCE_REQUIREMENTS = {
 export function runQualificationCheck(type, farmer, ctx) {
   const checks = [
     { label: "Profile photo on file", pass: !!farmer.photo_url },
-    { label: "At least one crop registered", pass: !!ctx.hasCropRegistered },
+    { label: "At least one VERIFIED crop registration", pass: !!ctx.hasCropRegistered },
     { label: "Farm size on file", pass: !!farmer.farm_size },
   ];
 

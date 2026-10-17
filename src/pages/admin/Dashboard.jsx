@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
+import ReportSummary from "../../components/ReportSummary.jsx";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -66,6 +67,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+      <ReportSummary basePath="/admin" />
     </section>
   );
 }

@@ -3,10 +3,10 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
+import PcicApplication, { PcicView } from "./PcicApplication.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
-import { CROP_LIST, INSURANCE_SOURCES, computeInsuranceStatus, computeInsuranceBasis, formatPeso } from "../../lib/businessRules";
+import { computeInsuranceStatus, computeInsuranceBasis, formatPeso, ASSISTANCE_REQUIREMENTS } from "../../lib/businessRules";
 
-const empty = { crop_name: CROP_LIST[0], area: "", planting_date: "", coverage_start_date: "", coverage_end_date: "", insurance_source: INSURANCE_SOURCES[0] };
 
 export default function FarmerInsurance() {
   const { farmer } = useAuth();
@@ -14,17 +14,15 @@ export default function FarmerInsurance() {
   const [rows, setRows] = useState([]);
   const [verifiedYields, setVerifiedYields] = useState([]);
   const [cropPrices, setCropPrices] = useState({});
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(empty);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
+  // null = list | "new" = PCIC application form | { saved } = view a saved application
+  const [screen, setScreen] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
 
   async function load() {
     if (!farmer?.id) return;
     const [{ data: regs }, { data: yields }, { data: prices }] = await Promise.all([
       supabase.from("insurance_registrations").select("*").eq("farmer_id", farmer.id).order("registered_at", { ascending: false }),
-      supabase.from("yield_records").select("crop_name, kilograms").eq("farmer_id", farmer.id).eq("status", "Verified"),
+      supabase.from("yield_records").select("crop_name, quantity_kg").eq("farmer_id", farmer.id).eq("status", "Verified"),
       supabase.from("crop_prices").select("*"),
     ]);
     setRows(regs || []);
@@ -33,41 +31,21 @@ export default function FarmerInsurance() {
   }
   useEffect(() => { load(); }, [farmer?.id]);
 
-  function openNew() {
-    setForm(empty);
-    setFormError("");
-    setOpen(true);
-  }
-
-  async function submit(e) {
-    e.preventDefault();
-    if (form.coverage_end_date && form.coverage_start_date && form.coverage_end_date < form.coverage_start_date) {
-      setFormError("Coverage end date cannot be before the coverage start date.");
-      return;
-    }
-    setSaving(true);
-    setFormError("");
-    const { error } = await supabase.from("insurance_registrations").insert({
-      ...form,
-      coverage_start_date: form.coverage_start_date || form.planting_date,
-      coverage_end_date: form.coverage_end_date || null,
-      farmer_id: farmer.id, status: "Active",
-    });
-    setSaving(false);
-    if (error) {
-      // The DB trigger raises a friendly message when an active policy already exists.
-      setFormError(error.message.replace(/^.*insurance_registrations: /, ""));
-      return;
-    }
-    showToast("Crop registered for insurance.", "fa-shield-heart");
-    setOpen(false);
-    load();
-  }
+  if (screen === "new") return <PcicApplication onCancel={() => setScreen(null)} onSaved={() => { setScreen(null); load(); }} />;
+  if (screen?.saved) return <PcicView saved={screen.saved} onBack={() => setScreen(null)} />;
 
   return (
     <section>
-      <div className="view-head"><h2><i className="fa-solid fa-shield-heart"></i> Crop Insurance</h2><button className="btn-primary" onClick={openNew}><i className="fa-solid fa-plus"></i> Register Crop</button></div>
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Register crops before any damage occurs to establish insurance eligibility. Expired and past policies stay visible below for your records.</p>
+      <div className="view-head"><h2><i className="fa-solid fa-shield-heart"></i> Crop Insurance Records</h2><button className="btn-primary" onClick={() => setScreen("new")}><i className="fa-solid fa-plus"></i> Register Crop</button></div>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Register Crop opens the PCIC Application for Crop Insurance (one long bond sheet). Register crops before any damage occurs to establish insurance eligibility. Expired and past policies stay visible below for your records.</p>
+      <div className="qual-box">
+        <b>How New Registration vs. Renewal is decided</b>
+        <p style={{ margin: 0 }}>If this is the first time you're insuring a given crop, it's recorded as a <b>New Registration</b>. If you already have any previous record for that same crop (active, expired, claimed, or cancelled), registering it again is treated as a <b>Renewal</b> — this applies to every farmer with prior history, not only certain members. You cannot start a new registration for a crop while an active policy for it is still in effect; wait for it to expire, be claimed, or be cancelled first.</p>
+      </div>
+      <div className="qual-box">
+        <b>Eligibility Requirements</b>
+        <p style={{ margin: 0 }}>{ASSISTANCE_REQUIREMENTS["Crop Insurance"]}</p>
+      </div>
       <div className="table-panel">
         <table className="data-table">
           <thead><tr><th>Crop / Plant Name</th><th>Area</th><th>Type</th><th>Coverage</th><th>Source</th><th>Status</th><th></th></tr></thead>
@@ -87,19 +65,6 @@ export default function FarmerInsurance() {
         </table>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Register Crop for Insurance" icon="fa-shield-heart">
-        <form className="modal-body" onSubmit={submit}>
-          {formError && <div className="hint-text" style={{ color: "var(--danger)", background: "var(--cream)", border: "1px solid var(--cream-2)", borderRadius: 8, padding: "10px 12px" }}><i className="fa-solid fa-triangle-exclamation"></i> {formError}</div>}
-          <label>Crop <select value={form.crop_name} onChange={(e) => setForm({ ...form, crop_name: e.target.value })}>{CROP_LIST.map((c) => <option key={c}>{c}</option>)}</select></label>
-          <label>Area (hectares) <input type="number" step="0.1" min="0.1" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} required /></label>
-          <label>Planting Date <input type="date" value={form.planting_date} onChange={(e) => setForm({ ...form, planting_date: e.target.value })} required /></label>
-          <label>Coverage Start Date <input type="date" value={form.coverage_start_date} onChange={(e) => setForm({ ...form, coverage_start_date: e.target.value })} /></label>
-          <label>Coverage End Date <input type="date" value={form.coverage_end_date} onChange={(e) => setForm({ ...form, coverage_end_date: e.target.value })} /></label>
-          <label>Insurance Source <select value={form.insurance_source} onChange={(e) => setForm({ ...form, insurance_source: e.target.value })}>{INSURANCE_SOURCES.map((s) => <option key={s}>{s}</option>)}</select></label>
-          <div className="modal-actions"><button type="button" className="btn-ghost" onClick={() => setOpen(false)}>Cancel</button><button type="submit" className="btn-primary" disabled={saving}><i className="fa-solid fa-floppy-disk"></i> {saving ? "Saving…" : "Save"}</button></div>
-        </form>
-      </Modal>
-
       <Modal open={!!detailRow} onClose={() => setDetailRow(null)} title={`${detailRow?.crop_name || ""} — Insurance Record`} icon="fa-shield-heart">
         {detailRow && (() => {
           const basis = computeInsuranceBasis(detailRow, verifiedYields, cropPrices);
@@ -115,6 +80,11 @@ export default function FarmerInsurance() {
                 <li><span>Status</span><b>{effectiveStatus}</b></li>
                 <li><span>Insurance Source</span><b>{detailRow.insurance_source}</b></li>
               </ul>
+              {detailRow.pcic_application && (
+                <div className="modal-actions" style={{ justifyContent: "flex-start", padding: "4px 0 10px" }}>
+                  <button className="btn-primary" onClick={() => { const saved = detailRow.pcic_application; setDetailRow(null); setScreen({ saved }); }}><i className="fa-solid fa-file-lines"></i> View / Print PCIC Application Form</button>
+                </div>
+              )}
               <p className="rsbsa-subhead">Insurance Calculation Basis</p>
               <div className="qual-box">
                 <p style={{ margin: 0 }}>Crop: {detailRow.crop_name}<br />Farm Area: {detailRow.area} ha<br />Yield used: {basis.yieldBasisNote}<br />Crop Price: ₱{basis.price}/kg<br />Estimated Crop Value: {formatPeso(basis.cropValue)}<br />Coverage Rate: {(basis.coverageRate * 100).toFixed(0)}%</p>

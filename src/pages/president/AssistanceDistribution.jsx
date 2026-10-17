@@ -18,7 +18,7 @@ export default function AssistanceDistribution() {
     const [{ data }, { data: dir }, { data: crops }, { data: yields }, { data: insurance }] = await Promise.all([
       supabase.from("assistance_records").select("*").order("requested_at", { ascending: false }),
       supabase.from("farmer_directory").select("*"),
-      supabase.from("crop_registrations").select("farmer_id"),
+      supabase.from("crop_registrations").select("farmer_id").eq("status", "Verified"),
       supabase.from("yield_records").select("farmer_id").eq("status", "Verified"),
       supabase.from("insurance_registrations").select("farmer_id"),
     ]);

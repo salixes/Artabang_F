@@ -16,7 +16,7 @@ const lbl = (o) => {
 };
 
 /* ---------------- digit boxes (PCN / TRN / date of birth / mobile / RSBSA No.) ---------------- */
-function Seg({ pattern, value, onChange, disabled, small, style, bad }) {
+export function Seg({ pattern, value, onChange, disabled, small, style, bad }) {
   const refs = useRef([]);
   const total = slotCount(pattern);
   const chars = (value || "").padEnd(total, " ").slice(0, total).split("");

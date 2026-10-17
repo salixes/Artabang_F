@@ -24,6 +24,8 @@ import AdminYield from "./pages/admin/Yield.jsx";
 import AdminInsurance from "./pages/admin/Insurance.jsx";
 import AdminAssistance from "./pages/admin/Assistance.jsx";
 import AdminAnnouncements from "./pages/admin/Announcements.jsx";
+import AssistanceAnnouncement from "./pages/admin/AssistanceAnnouncement.jsx";
+import CropVerification from "./pages/admin/CropVerification.jsx";
 
 import PresidentDashboard from "./pages/president/Dashboard.jsx";
 import FarmersProfile from "./pages/president/FarmersProfile.jsx";
@@ -66,6 +68,7 @@ export default function App() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="policies" element={<FarmerPolicies />} />
         <Route path="announcements" element={<FarmerAnnouncements />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
       {/* ADMIN */}
@@ -73,15 +76,17 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="farmers" element={<AdminFarmers />} />
+        <Route path="crops" element={<CropVerification />} />
         <Route path="requests" element={<AdminRequests />} />
         <Route path="yield" element={<AdminYield />} />
         <Route path="insurance" element={<AdminInsurance />} />
         <Route path="assistance" element={<AdminAssistance />} />
+        <Route path="assistance-announcement" element={<AssistanceAnnouncement />} />
         <Route path="reports" element={<Reports title="Assistance Reports" />} />
         <Route path="association" element={<Association scope="admin" />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="profile" element={<StaffProfile roleLabel="ADMIN" />} />
-        <Route path="settings" element={<Settings canManagePrices />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
 
       {/* PRESIDENT */}

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
@@ -10,19 +11,25 @@ export default function AdminAssistance() {
   const [rows, setRows] = useState([]);
   const [directory, setDirectory] = useState({});
   const [contextByFarmer, setContextByFarmer] = useState({});
-  const [filter, setFilter] = useState("Pending");
+  const [params, setParams] = useSearchParams();
+  const programFilter = params.get("announcement") || "all"; // "all" | "direct" | <announcement id>
+  const [programs, setPrograms] = useState([]);
+  // arriving from an announcement's "View applications" shows ALL of its applications, not just Pending
+  const [filter, setFilter] = useState(params.get("announcement") ? "All" : "Pending");
   const [reviewRow, setReviewRow] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
 
   async function load() {
-    const [{ data }, { data: dir }, { data: crops }, { data: yields }, { data: insurance }] = await Promise.all([
+    const [{ data }, { data: dir }, { data: crops }, { data: yields }, { data: insurance }, { data: ann }] = await Promise.all([
       supabase.from("assistance_records").select("*").order("requested_at", { ascending: false }),
       supabase.from("farmer_directory").select("*"),
-      supabase.from("crop_registrations").select("farmer_id"),
+      supabase.from("crop_registrations").select("farmer_id").eq("status", "Verified"),
       supabase.from("yield_records").select("farmer_id").eq("status", "Verified"),
       supabase.from("insurance_registrations").select("farmer_id"),
+      supabase.from("assistance_announcements").select("id, title, assistance_type").order("created_at", { ascending: false }),
     ]);
+    setPrograms(ann || []);
     setRows(data || []);
     setDirectory(Object.fromEntries((dir || []).map((d) => [d.id, d])));
     const cropSet = new Set((crops || []).map((c) => c.farmer_id));
@@ -35,7 +42,12 @@ export default function AdminAssistance() {
   }
   useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(() => (filter === "All" ? rows : rows.filter((r) => r.status === filter)), [rows, filter]);
+  const filtered = useMemo(() => rows.filter((r) => (
+    (filter === "All" || r.status === filter)
+    && (programFilter === "all" || (programFilter === "direct" ? !r.announcement_id && !r.program_title : r.announcement_id === programFilter))
+  )), [rows, filter, programFilter]);
+
+  const setProgramFilter = (v) => { const n = new URLSearchParams(params); if (v === "all") n.delete("announcement"); else n.set("announcement", v); setParams(n, { replace: true }); };
 
   function openReview(row) {
     setReviewRow(row);
@@ -62,7 +74,7 @@ export default function AdminAssistance() {
     if (error) return showToast(error.message, "fa-triangle-exclamation");
     await supabase.from("notifications").insert({
       recipient_id: reviewRow.farmer_id, icon: status === "Released" ? "fa-circle-check" : status === "Denied" ? "fa-circle-xmark" : "fa-hourglass-half",
-      message: `Your <b>${reviewRow.assistance_type}</b> application was marked <b>${status}</b>${payload.quantity ? ` (${payload.quantity} ${payload.unit})` : ""}.`,
+      message: `Your <b>${reviewRow.program_title || reviewRow.assistance_type}</b> application was marked <b>${status}</b>${payload.quantity ? ` (${payload.quantity} ${payload.unit})` : ""}.`,
     });
     showToast(`Application ${status.toLowerCase()}.`, "fa-hand-holding-dollar");
     setReviewRow(null);
@@ -75,18 +87,25 @@ export default function AdminAssistance() {
     <section>
       <div className="view-head">
         <h2><i className="fa-solid fa-hand-holding-dollar"></i> Assistance Management</h2>
-        <select className="filter-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option>Pending</option><option>Under Review</option><option>Incoming</option><option>Released</option><option>Denied</option><option>All</option>
-        </select>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <select className="filter-select" value={programFilter} onChange={(e) => setProgramFilter(e.target.value)} aria-label="Program">
+            <option value="all">All programs</option>
+            <option value="direct">Direct requests (no announcement)</option>
+            {programs.map((p) => <option key={p.id} value={p.id}>{p.title} ({p.assistance_type})</option>)}
+          </select>
+          <select className="filter-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option>Pending</option><option>Under Review</option><option>Incoming</option><option>Released</option><option>Denied</option><option>All</option>
+          </select>
+        </div>
       </div>
       <div className="table-panel">
         <table className="data-table">
-          <thead><tr><th>Farmer</th><th>Type</th><th>Quantity</th><th>Source</th><th>Requested</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Farmer</th><th>Program</th><th>Type</th><th>Quantity</th><th>Source</th><th>Requested</th><th>Status</th><th></th></tr></thead>
           <tbody>
-            {filtered.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No records.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={8} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No records.</td></tr>}
             {filtered.map((r) => (
               <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => openReview(r)}>
-                <td>{directory[r.farmer_id]?.full_name || "—"}</td><td>{r.assistance_type}</td>
+                <td>{directory[r.farmer_id]?.full_name || "—"}</td><td>{r.program_title || <span style={{ color: "var(--ink-soft)" }}>Direct request</span>}</td><td>{r.assistance_type}</td>
                 <td>{r.quantity ? `${r.quantity} ${r.unit || ""}` : "—"}</td><td><SourceBadge source={r.source} /></td>
                 <td>{new Date(r.requested_at).toLocaleDateString("en-PH")}</td><td><StatusBadge status={r.status} /></td>
                 <td><button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={(e) => { e.stopPropagation(); openReview(r); }}><i className="fa-solid fa-eye"></i> Review</button></td>
@@ -99,6 +118,7 @@ export default function AdminAssistance() {
       <Modal open={!!reviewRow} onClose={() => setReviewRow(null)} title={`${reviewRow?.assistance_type || ""} — ${directory[reviewRow?.farmer_id]?.full_name || ""}`} icon="fa-hand-holding-dollar">
         {reviewRow && form && (
           <div className="modal-body">
+            {reviewRow.program_title && <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-hand-holding-heart"></i> Application for the posted assistance: <b>{reviewRow.program_title}</b></p>}
             {qual && (
               <div className="qual-box">
                 <b>{qual.qualified ? "Meets automatic qualification criteria" : "Does not fully meet qualification criteria"}</b>

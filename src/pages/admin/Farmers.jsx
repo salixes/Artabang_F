@@ -35,13 +35,6 @@ export default function AdminFarmers() {
     return rows.filter((r) => fullNameOf(r).toLowerCase().includes(q) || (r.location || "").toLowerCase().includes(q) || (r.rsbsa_number || "").toLowerCase().includes(q));
   }, [rows, search]);
 
-  async function toggleValidate(row) {
-    const { error } = await supabase.from("farmers").update({ validated: !row.validated }).eq("id", row.id);
-    if (error) return showToast(error.message, "fa-triangle-exclamation");
-    showToast(row.validated ? "Validation revoked." : "Farmer validated.", "fa-user-check");
-    load();
-  }
-
   async function remove(row) {
     if (!confirm(`Permanently delete ${fullNameOf(row)}'s account? This cannot be undone.`)) return;
     const { data, error } = await supabase.functions.invoke("admin-delete-user", { body: { user_id: row.id } });
@@ -86,10 +79,8 @@ export default function AdminFarmers() {
               <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => setDetailRow(f)}><i className="fa-solid fa-eye"></i></button>
               <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => setEnroll({ farmer: f })}><i className="fa-solid fa-pen"></i></button>
               <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => setRsbsaRow(f)}><i className="fa-solid fa-file-lines"></i></button>
-              <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => toggleValidate(f)}><i className={`fa-solid ${f.validated ? "fa-user-xmark" : "fa-user-check"}`}></i></button>
               <button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={() => remove(f)}><i className="fa-solid fa-trash"></i></button>
             </div>
-            <span className={`status-badge ${f.validated ? "status-resolved" : "status-pending"}`} style={{ marginTop: 8, display: "inline-block" }}>{f.validated ? "Validated" : "Pending"}</span>
           </div>
         ))}
       </div>
@@ -109,7 +100,6 @@ export default function AdminFarmers() {
               <li><span>Total Parcel Area</span><b>{detailRow.farm_size ? `${detailRow.farm_size} ha` : "—"}</b></li>
               <li><span>Association</span><b>{detailRow.association_name || "Not a member"}</b></li>
               <li><span>Total Verified Yield</span><b>{Number(detailRow.total_verified_yield).toLocaleString()} kg</b></li>
-              <li><span>Validation</span><b>{detailRow.validated ? "Validated" : "Pending"}</b></li>
               <li><span>Consent on File</span><b>{detailRow.consent_given ? `Yes (${detailRow.consent_date})` : "Not yet recorded"}</b></li>
             </ul>
             <div className="modal-actions"><button className="btn-primary" onClick={() => { setDetailRow(null); setRsbsaRow(detailRow); }}><i className="fa-solid fa-file-lines"></i> View / Print RSBSA Form</button></div>

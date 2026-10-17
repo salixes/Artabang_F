@@ -452,21 +452,58 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
    Dark Mode
    ========================================================================== */
 body.dark{
+  color-scheme:dark;
+  /* text-accent greens become light so they stay readable on dark panels */
+  --forest-deep:#8FD3A3;
+  --forest:#74C28F;
+  --forest-soft:#8DC9A0;
   --cream:#12241A;
-  --cream-2:#1D3327;
+  --cream-2:#27402F;
   --white:#182B20;
   --ink:#EAF2EA;
   --ink-soft:#9FB3A4;
   --sage-pale:#1F3B2A;
+  --shadow-soft:0 10px 30px -12px rgba(0,0,0,.55);
+  --shadow-lift:0 18px 40px -14px rgba(0,0,0,.65);
   background:radial-gradient(circle at 8% 0%, rgba(127,166,132,.12), transparent 40%), radial-gradient(circle at 100% 20%, rgba(200,155,60,.08), transparent 45%), #0F1F16;
 }
-body.dark .topbar{background:rgba(18,36,26,.8);border-bottom-color:rgba(255,255,255,.06);}
-body.dark .topbar-search,body.dark .clock-widget,body.dark .weather-widget,body.dark .table-search{background:var(--white);border-color:rgba(255,255,255,.08);}
+/* surfaces */
+body.dark .topbar{background:rgba(18,36,26,.85);border-bottom-color:rgba(255,255,255,.06);}
+body.dark .topbar-search,body.dark .clock-widget,body.dark .weather-widget,body.dark .table-search,body.dark .select-field{background:var(--white);border-color:rgba(255,255,255,.08);color:var(--ink);}
+body.dark .topbar-search input,body.dark .table-search input{color:var(--ink);}
 body.dark .stat-card,body.dark .panel{background:rgba(24,43,32,.7);border-color:rgba(255,255,255,.06);}
 body.dark .notif-panel,body.dark .avatar-menu,body.dark .modal,body.dark .table-panel,body.dark .profile-card,body.dark .farmer-card{background:var(--white);}
+body.dark .recipient-toolbar,body.dark .recipient-count,body.dark .recipient-item:hover{background:var(--white);}
 body.dark .data-table th{border-color:rgba(255,255,255,.08);}
 body.dark .data-table td{border-color:rgba(255,255,255,.06);}
-body.dark .modal-body input,body.dark .modal-body select,body.dark .modal-body textarea{background:#0F1F16;color:var(--ink);border-color:rgba(255,255,255,.1);}
+body.dark .qual-box{background:#12241A;border-color:rgba(255,255,255,.08);}
+body.dark .icon-btn:hover{background:var(--sage-pale);color:var(--forest-deep);}
+/* form controls — the paper forms (RSBSA / PCIC) are excluded and always stay white like real paper */
+body.dark :is(.content,.modal) :is(input,select,textarea):not([type=checkbox],[type=radio],[type=range],[type=file],.rp *,.pp *){
+  background:#0F1F16;color:var(--ink);border-color:rgba(255,255,255,.14);
+}
+body.dark .table-search input,body.dark .topbar-search input{background:transparent !important;border:none !important;}
+body.dark ::placeholder{color:#7D9183;}
+body.dark .rp,body.dark .pp{color-scheme:light;}
+body.dark .rp-bar,body.dark .pp-bar{color:var(--ink);}
+body.dark .rp-account{color:#000;}
+/* places where the light-green "accent" variable was used as a BACKGROUND stay dark green */
+body.dark .sidebar{background:linear-gradient(190deg,#14532D 0%,#0F3D22 100%);}
+body.dark .splash{background:linear-gradient(160deg,#14532D 0%,#0F3D22 55%,#0B2E19 100%);}
+body.dark .welcome-card{background:linear-gradient(120deg,#14532D 0%,#1F6B3E 55%,#276A45 100%);}
+body.dark .btn-primary{background:#1F6B3E;color:#fff;}
+body.dark .btn-primary:hover{background:#27824D;}
+body.dark .switch input:checked + .slider{background:#1F6B3E;}
+body.dark .toast{background:#1F6B3E;color:#fff;}
+body.dark .attendance-sheet thead th{background:#14532D;color:#fff;}
+body.dark .login-role-tab.active{background:#1F6B3E;color:#fff;}
+
+/* sun / moon theme button (topbar, between the clock and the bell) */
+.theme-toggle{color:var(--gold);font-size:1.05rem;}
+.theme-toggle i{transition:transform .35s cubic-bezier(.34,1.56,.64,1);}
+.theme-toggle:hover i{transform:rotate(18deg) scale(1.12);}
+.theme-toggle:hover{background:var(--sage-pale);color:var(--gold);}
+body.dark .theme-toggle{color:var(--gold-light);}
 
 /* ==========================================================================
    Responsive
@@ -842,3 +879,25 @@ body.dark .modal-body input,body.dark .modal-body select,body.dark .modal-body t
 .rsbsa-official-checkrow input[type="checkbox"],.rsbsa-official-checkrow input[type="radio"]{width:auto;accent-color:#000;}
 
 .rsbsa-official-note{font-size:.68rem;color:#555;padding:4px 6px;font-style:italic;}
+
+/* ---- Assistance Announcement (admin composer + cards) ---- */
+.aa-field{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--ink-soft);margin-top:12px;}
+.aa-field input,.aa-field textarea{width:100%;font:inherit;font-size:.85rem;color:var(--ink);}
+.aa-audience{display:flex;flex-wrap:wrap;gap:8px 24px;}
+.aa-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.aa-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--sage);border-radius:999px;font-size:.8rem;font-weight:600;color:var(--forest-deep);cursor:pointer;user-select:none;transition:background var(--transition), color var(--transition), border-color var(--transition);}
+.aa-chip input{width:auto;margin:0;accent-color:var(--forest);}
+.aa-chip:hover{background:var(--sage-pale);}
+.aa-chip.on{background:var(--forest-deep);border-color:var(--forest-deep);color:#fff;}
+body.dark .aa-chip.on{background:#1F6B3E;border-color:#1F6B3E;}
+.aa-count{margin:12px 0 0;font-size:.82rem;font-weight:600;color:var(--forest-deep);display:flex;align-items:center;gap:8px;}
+.aa-count.warn{color:var(--danger);}
+.aa-meta{display:flex;flex-wrap:wrap;gap:6px;padding:0 4px 8px;}
+.aa-badge{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;letter-spacing:.02em;padding:3px 10px;border-radius:999px;background:var(--forest-deep);color:#fff;}
+.aa-badge.soft{background:var(--sage-pale);color:var(--forest-deep);}
+body.dark .aa-badge:not(.soft){background:#1F6B3E;}
+.aa-apps{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 4px 8px;font-size:.8rem;color:var(--forest-deep);}
+.btn-primary:disabled,.btn-primary[disabled]{opacity:.45;cursor:not-allowed;box-shadow:none;}
+.report-summary{grid-template-columns:minmax(0,1fr);}
+.report-summary .panel{min-width:0;}
+.report-summary .table-panel{overflow-x:auto;}
