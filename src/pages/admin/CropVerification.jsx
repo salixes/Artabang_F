@@ -6,7 +6,7 @@ import { PcicView } from "../farmer/PcicApplication.jsx";
 
 // Admin verifies the crops farmers register. A crop only counts toward assistance
 // eligibility once it is Verified; the farmer is notified of the result automatically.
-export default function CropVerification() {
+export default function CropVerification({ onOpenForm } = {}) {
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [names, setNames] = useState({});
@@ -51,7 +51,8 @@ export default function CropVerification() {
     load();
   }
 
-  if (viewForm) return <PcicView saved={viewForm} onBack={() => setViewForm(null)} />;
+  // standalone: show the form here; inside Crop Approval the parent page shows it
+  if (viewForm && !onOpenForm) return <PcicView saved={viewForm} onBack={() => setViewForm(null)} />;
 
   return (
     <section>
@@ -81,7 +82,7 @@ export default function CropVerification() {
                 <td>{new Date(r.registered_at).toLocaleDateString("en-PH")}</td>
                 <td><StatusBadge status={r.status} />{r.status === "Rejected" && r.remarks && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>{r.remarks}</div>}</td>
                 <td style={{ whiteSpace: "nowrap" }}>
-                  {r.pcic_application && <button className="btn-ghost" title="View the PCIC application form" onClick={() => setViewForm(r.pcic_application)}><i className="fa-solid fa-file-lines"></i></button>}{" "}
+                  {r.pcic_application && <button className="btn-ghost" title="View the PCIC application form" onClick={() => (onOpenForm ? onOpenForm(r.pcic_application) : setViewForm(r.pcic_application))}><i className="fa-solid fa-file-lines"></i></button>}{" "}
                   {r.status !== "Verified" && <button className="btn-primary" style={{ padding: "5px 10px", fontSize: ".72rem" }} disabled={busy === r.id} onClick={() => setStatus(r, "Verified")}><i className="fa-solid fa-circle-check"></i> Verify</button>}{" "}
                   {r.status !== "Rejected" && <button className="btn-ghost" style={{ padding: "5px 10px", fontSize: ".72rem" }} disabled={busy === r.id} onClick={() => setStatus(r, "Rejected")}><i className="fa-solid fa-circle-xmark"></i> Reject</button>}
                 </td>

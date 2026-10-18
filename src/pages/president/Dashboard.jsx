@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import ReportSummary from "../../components/ReportSummary.jsx";
+import { ReleasedPieCard } from "../../components/ReleasedPie.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function PresidentDashboard() {
@@ -46,6 +47,8 @@ export default function PresidentDashboard() {
         <div className="stat-card ring-progress"><div className="stat-icon"><i className="fa-solid fa-hourglass-half"></i></div><div className="stat-num">{stats.pending_applications}</div><div className="stat-label">Pending Assistance</div></div>
         <div className="stat-card ring-resolved"><div className="stat-icon"><i className="fa-solid fa-hand-holding-dollar"></i></div><div className="stat-num">{stats.released_assistance}</div><div className="stat-label">Assistance Released</div></div>
       </div>
+      <ReleasedPieCard title="Assistance already released" />
+
       <ReportSummary basePath="/president" />
     </section>
   );

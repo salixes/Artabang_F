@@ -82,7 +82,7 @@ export default function AdminInsurance() {
   return (
     <section>
       <div className="view-head">
-        <h2><i className="fa-solid fa-shield-heart"></i> Crop Insurance Records</h2>
+        <h2><i className="fa-solid fa-shield-heart"></i> Crop Insurance Reports</h2>
         <select className="filter-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option>All</option><option>Active</option><option>Expired</option><option>Pending</option><option>Claimed</option><option>Cancelled</option>
         </select>

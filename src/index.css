@@ -901,3 +901,49 @@ body.dark .aa-badge:not(.soft){background:#1F6B3E;}
 .report-summary{grid-template-columns:minmax(0,1fr);}
 .report-summary .panel{min-width:0;}
 .report-summary .table-panel{overflow-x:auto;}
+.crop-approval-split{margin:36px 0 26px;border-top:2px dashed var(--cream-2);scroll-margin-top:90px;}
+.crop-approval .view-head h2{font-size:1.6rem;}
+
+/* ---- Pie chart: assistance already released (all dashboards) ---- */
+.rel-pie-card{margin-bottom:18px;}
+.rel-pie{padding:2px 4px 6px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.rel-pie-title{margin:0 0 10px;font-family:var(--font-display);font-size:1rem;color:var(--forest-deep);display:flex;align-items:center;gap:8px;}
+.rel-pie-body{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.rel-pie-svg{flex:none;}
+.rel-pie-side{flex:1;min-width:170px;}
+.rel-pie-big{display:flex;align-items:baseline;gap:8px;}
+.rel-pie-big b{font-family:var(--font-display);font-size:2.4rem;line-height:1;color:var(--resolved);}
+.rel-pie-big span{font-size:.85rem;color:var(--ink-soft);}
+.rel-pie-sub{font-size:.78rem;color:var(--ink-soft);margin:2px 0 10px;}
+.rel-pie-legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:.78rem;}
+.rel-pie-legend li{display:flex;align-items:center;gap:7px;}
+.rel-pie-legend i{width:11px;height:11px;border-radius:3px;flex:none;}
+.rel-pie-legend span{flex:1;color:var(--ink);}
+.rel-pie-legend b{min-width:22px;text-align:right;}
+.rel-pie-legend em{font-style:normal;color:var(--ink-soft);min-width:34px;text-align:right;}
+body.dark .rel-pie-big b{color:#7FD19A;}
+body.dark .rel-pie-svg path,body.dark .rel-pie-svg circle{stroke:#182B20;}
+
+/* released assistance: who / what / where */
+.rel-card-grid{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:28px;align-items:start;}
+@media (max-width:1000px){.rel-card-grid{grid-template-columns:minmax(0,1fr);}}
+.rel-breakdown{min-width:0;border-left:1px solid var(--cream-2);padding-left:26px;}
+@media (max-width:1000px){.rel-breakdown{border-left:0;padding-left:0;border-top:1px solid var(--cream-2);padding-top:16px;}}
+.rel-who{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.rel-who b{font-family:var(--font-display);font-size:2.4rem;line-height:1;color:var(--forest-deep);}
+.rel-who span{font-size:.9rem;color:var(--ink);}
+.rel-who em{flex-basis:100%;font-style:normal;font-size:.76rem;color:var(--ink-soft);}
+.rel-breakdown h5{margin:14px 0 6px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);display:flex;align-items:center;gap:7px;}
+.rel-mini{width:100%;border-collapse:collapse;font-size:.8rem;}
+.rel-mini th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);font-weight:700;padding:4px 8px 4px 0;border-bottom:1px solid var(--cream-2);}
+.rel-mini td{padding:6px 8px 6px 0;border-bottom:1px solid var(--cream-2);color:var(--ink);}
+.rel-mini th:not(:first-child),.rel-mini td:not(:first-child){text-align:right;width:84px;}
+
+/* ---- "Add profile" placeholder (no photo yet) ---- */
+.avatar-x{position:relative;}
+.avatar-add{flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;line-height:1.1;background:var(--sage-pale);color:var(--forest-deep);border:2px dashed var(--forest);}
+.avatar-add b{font-weight:700;}
+.avatar-add.clickable{cursor:pointer;transition:background var(--transition), transform var(--transition);}
+.avatar-add.clickable:hover{background:var(--cream-2);transform:scale(1.03);}
+.avatar-btn .avatar-add{border-width:1.5px;}
+.avatar-btn{padding:0;display:inline-flex;}

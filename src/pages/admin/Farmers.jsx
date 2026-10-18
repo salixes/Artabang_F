@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
+import Avatar from "../../components/Avatar.jsx";
 import RsbsaForm from "./RsbsaForm.jsx";
 import RsbsaEnroll from "./RsbsaEnroll.jsx";
 
@@ -70,7 +71,7 @@ export default function AdminFarmers() {
         {filtered.length === 0 && <p className="hint-text">No farmers found.</p>}
         {filtered.map((f) => (
           <div className="farmer-card" key={f.id}>
-            <img src={f.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(f.avatar_seed || f.full_name)}&backgroundColor=b6e3b6`} alt={fullNameOf(f)} />
+            <Avatar src={f.photo_url} name={fullNameOf(f)} size={66} border="2px solid var(--sage-pale)" style={{ margin: "0 auto 10px" }} />
             <h4>{fullNameOf(f)}</h4>
             <p className="f-loc">{f.barangay || f.location || "—"}</p>
             <p style={{ fontSize: ".72rem", color: "var(--ink-soft)" }}>{f.rsbsa_number ? `RSBSA# ${f.rsbsa_number}` : "No RSBSA number yet"}</p>

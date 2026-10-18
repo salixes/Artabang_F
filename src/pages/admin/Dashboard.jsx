@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import ReportSummary from "../../components/ReportSummary.jsx";
+import { ReleasedPieCard } from "../../components/ReleasedPie.jsx";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -51,7 +52,9 @@ export default function AdminDashboard() {
         <div className="stat-card ring-progress"><div className="stat-icon"><i className="fa-solid fa-hand-holding-dollar"></i></div><div className="stat-num">{stats.total_assistance_records}</div><div className="stat-label">Assistance Records</div></div>
         <div className="stat-card ring-resolved"><div className="stat-icon"><i className="fa-solid fa-shield-heart"></i></div><div className="stat-num">{stats.insurance_claims}</div><div className="stat-label">Crop Insurance Claims</div></div>
       </div>
-      <div className="dash-grid">
+      <ReleasedPieCard title="Assistance already released" />
+
+      <div className="dash-grid" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
         <div className="panel">
           <div className="panel-head"><h3><i className="fa-solid fa-hand-holding-dollar"></i> Recent Assistance Records</h3><a href="#" className="link-more" onClick={(e) => { e.preventDefault(); navigate("/admin/assistance"); }}>View all</a></div>
           <div className="table-panel no-shadow">
