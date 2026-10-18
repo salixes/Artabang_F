@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
+import Avatar from "./Avatar.jsx";
 import { notificationPath } from "../lib/assistancePrograms";
 
 export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
-  const { profile, role, logout } = useAuth();
+  const { profile, role, logout, farmer } = useAuth();
+  // farmers keep their photo on the farmer record; admin / president on their profile
+  const photo = role === "farmer" ? farmer?.photo_url : profile?.avatar_url;
   const { dark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
@@ -95,7 +98,7 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
 
         <div className="avatar-wrap">
           <button className="avatar-btn" onClick={() => { setAvatarOpen((v) => !v); setNotifOpen(false); }}>
-            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile?.avatar_seed || profile?.full_name || "user")}&backgroundColor=b6e3b6`} alt="avatar" />
+            <Avatar src={photo} name={profile?.full_name} size={38} border="2px solid var(--gold-light)" />
           </button>
           <div className={`avatar-menu ${avatarOpen ? "" : "hidden"}`}>
             <p className="avatar-name">{profile?.full_name}</p>

@@ -24,7 +24,6 @@ const NAV = {
       ],
     },
     { to: "/farmer/policies", label: "Association Policies", icon: "fa-scroll" },
-    { to: "/farmer/settings", label: "Settings", icon: "fa-gear" },
   ],
   admin: [
     { to: "/admin", label: "Dashboard", icon: "fa-chart-line", end: true },
@@ -36,16 +35,19 @@ const NAV = {
       ],
     },
     { to: "/admin/farmers", label: "Farmer Profiling", icon: "fa-people-group" },
-    { to: "/admin/crops", label: "Crop Verification", icon: "fa-seedling" },
-    { to: "/admin/requests", label: "Crop Change Requests", icon: "fa-file-circle-check" },
-    { to: "/admin/yield", label: "Yield Reports", icon: "fa-file-lines" },
-    { to: "/admin/insurance", label: "Crop Insurance Records", icon: "fa-shield-heart" },
     { to: "/admin/assistance", label: "Assistance Management", icon: "fa-hand-holding-dollar" },
     { to: "/admin/assistance-announcement", label: "Assistance Announcement", icon: "fa-hand-holding-heart" },
-    { to: "/admin/reports", label: "Assistance Reports", icon: "fa-chart-pie" },
+    {
+      group: "Reports", icon: "fa-chart-pie",
+      items: [
+        { to: "/admin/insurance", label: "Crop Insurance Reports" },
+        { to: "/admin/reports", label: "Assistance Reports" },
+        { to: "/admin/yield", label: "Yield Reports" },
+      ],
+    },
+    { to: "/admin/crops", label: "Crop Approval", icon: "fa-seedling" },
     { to: "/admin/association", label: "Farmers Association", icon: "fa-flag" },
     { to: "/admin/profile", label: "Admin Profile", icon: "fa-id-badge" },
-    { to: "/admin/settings", label: "Settings", icon: "fa-gear" },
   ],
   president: [
     { to: "/president", label: "Dashboard", icon: "fa-chart-line", end: true },
@@ -64,7 +66,6 @@ const NAV = {
     { to: "/president/reports", label: "Transparency Reports", icon: "fa-file-invoice" },
     { to: "/president/policies", label: "Policy Management", icon: "fa-scroll" },
     { to: "/president/profile", label: "President Profile", icon: "fa-id-badge" },
-    { to: "/president/settings", label: "Settings", icon: "fa-gear" },
   ],
 };
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Avatar from "../../components/Avatar.jsx";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
@@ -146,7 +147,7 @@ export default function FarmerProfile() {
       <div className="profile-center-wrap">
         <div className="panel">
           <div className="profile-center-header">
-            <img src={directoryRow.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(directoryRow.full_name)}&backgroundColor=b6e3b6`} alt="Profile" />
+            <Avatar src={directoryRow.photo_url} name={directoryRow.full_name} size={110} onClick={openEdit} />
             <div><p style={{ fontWeight: 600, fontSize: "1.1rem" }}>{directoryRow.full_name}</p><p className="hint-text">{directoryRow.email}</p></div>
           </div>
           <ul className="detail-list">

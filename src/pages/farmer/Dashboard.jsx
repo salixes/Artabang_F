@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { formatPeso } from "../../lib/businessRules";
+import { ReleasedPieCard } from "../../components/ReleasedPie.jsx";
 
 export default function FarmerDashboard() {
   const { farmer, profile } = useAuth();
@@ -63,6 +64,8 @@ export default function FarmerDashboard() {
         <div className="stat-card ring-pending"><div className="stat-icon"><i className="fa-solid fa-hourglass-half"></i></div><div className="stat-num">{stats.pendingCount}</div><div className="stat-label">Pending Applications</div></div>
         <div className="stat-card ring-resolved"><div className="stat-icon"><i className="fa-solid fa-shield-heart"></i></div><div className="stat-num">{stats.insuranceCount}</div><div className="stat-label">Crops Insured</div></div>
       </div>
+
+      <ReleasedPieCard title="My assistance already released" />
 
       <div className="dash-grid">
         <div className="panel">

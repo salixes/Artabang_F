@@ -19,13 +19,12 @@ import FarmerAnnouncements from "./pages/farmer/Announcements.jsx";
 
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import AdminFarmers from "./pages/admin/Farmers.jsx";
-import AdminRequests from "./pages/admin/Requests.jsx";
 import AdminYield from "./pages/admin/Yield.jsx";
 import AdminInsurance from "./pages/admin/Insurance.jsx";
 import AdminAssistance from "./pages/admin/Assistance.jsx";
 import AdminAnnouncements from "./pages/admin/Announcements.jsx";
 import AssistanceAnnouncement from "./pages/admin/AssistanceAnnouncement.jsx";
-import CropVerification from "./pages/admin/CropVerification.jsx";
+import CropApproval from "./pages/admin/CropApproval.jsx";
 
 import PresidentDashboard from "./pages/president/Dashboard.jsx";
 import FarmersProfile from "./pages/president/FarmersProfile.jsx";
@@ -39,7 +38,6 @@ import Meetings from "./pages/president/Meetings.jsx";
 import Association from "./pages/shared/Association.jsx";
 import Reports from "./pages/shared/Reports.jsx";
 import StaffProfile from "./pages/shared/StaffProfile.jsx";
-import Settings from "./pages/shared/Settings.jsx";
 import Notifications from "./pages/shared/Notifications.jsx";
 
 function RootRedirect() {
@@ -68,7 +66,6 @@ export default function App() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="policies" element={<FarmerPolicies />} />
         <Route path="announcements" element={<FarmerAnnouncements />} />
-        <Route path="settings" element={<Settings />} />
       </Route>
 
       {/* ADMIN */}
@@ -76,8 +73,8 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="farmers" element={<AdminFarmers />} />
-        <Route path="crops" element={<CropVerification />} />
-        <Route path="requests" element={<AdminRequests />} />
+        <Route path="crops" element={<CropApproval />} />
+        <Route path="requests" element={<Navigate to="/admin/crops" replace />} />
         <Route path="yield" element={<AdminYield />} />
         <Route path="insurance" element={<AdminInsurance />} />
         <Route path="assistance" element={<AdminAssistance />} />
@@ -86,7 +83,6 @@ export default function App() {
         <Route path="association" element={<Association scope="admin" />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="profile" element={<StaffProfile roleLabel="ADMIN" />} />
-        <Route path="settings" element={<Settings />} />
       </Route>
 
       {/* PRESIDENT */}
@@ -103,7 +99,6 @@ export default function App() {
         <Route path="meetings" element={<Meetings />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="profile" element={<StaffProfile roleLabel="Association President" />} />
-        <Route path="settings" element={<Settings />} />
       </Route>
 
       <Route path="*" element={<RootRedirect />} />
