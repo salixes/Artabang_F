@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { CROP_LIST } from "../../lib/businessRules";
@@ -88,6 +89,7 @@ export default function AssistanceAnnouncement() {
     // the database already notified the matching farmers; read back how many
     const { data: saved } = await supabase.from("assistance_announcements").select("recipient_count").eq("id", created.id).single();
     setSaving(false);
+    logActivity(`Posted assistance announcement "${form.title.trim()}" — ${saved?.recipient_count ?? 0} farmer(s) notified`, "announcement");
     showToast(`Posted. ${saved?.recipient_count ?? 0} farmer(s) notified.`, "fa-bullhorn");
     setForm(emptyForm); setComposing(false); load();
   }

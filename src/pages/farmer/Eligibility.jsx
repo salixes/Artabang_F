@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
@@ -49,6 +50,7 @@ export default function FarmerEligibility() {
       const msg = error.code === "23505" || /duplicate key/.test(error.message) ? "You already applied for this assistance." : error.message;
       return showToast(msg, "fa-triangle-exclamation");
     }
+    logActivity(`Applied for "${a.title}"`, "assistance");
     showToast("Application submitted. The MAO has been notified.", "fa-file-circle-plus");
     load();
   }

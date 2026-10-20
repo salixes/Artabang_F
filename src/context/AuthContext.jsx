@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
+import { setActivityUser, logAuth, logLoginFailure } from "../lib/activity";
 
 const AuthContext = createContext(null);
 
@@ -12,6 +13,7 @@ export function AuthProvider({ children }) {
   const [profileError, setProfileError] = useState(null);
 
   const loadProfile = useCallback(async (userId) => {
+    setActivityUser(userId);
     if (!userId) {
       setProfile(null);
       setFarmer(null);
@@ -82,11 +84,16 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) { logLoginFailure(email); throw error; }
+    setActivityUser(data.user?.id);
+    logAuth("login", "Signed in");
     return data;
   }, []);
 
   const logout = useCallback(async () => {
+    // record the sign-out while the session is still valid (but never make the user wait long)
+    await Promise.race([logAuth("logout", "Signed out"), new Promise((r) => setTimeout(r, 1500))]);
+    setActivityUser(null);
     await supabase.auth.signOut();
   }, []);
 

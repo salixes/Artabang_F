@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
-const NAV = {
+export const NAV = {
   farmer: [
     { to: "/farmer", label: "Dashboard", icon: "fa-seedling", end: true },
     {
@@ -24,6 +24,7 @@ const NAV = {
       ],
     },
     { to: "/farmer/policies", label: "Association Policies", icon: "fa-scroll" },
+    { to: "/farmer/activity-log", label: "Activity Log", icon: "fa-clock-rotate-left" },
   ],
   admin: [
     { to: "/admin", label: "Dashboard", icon: "fa-chart-line", end: true },
@@ -47,6 +48,7 @@ const NAV = {
     },
     { to: "/admin/crops", label: "Crop Approval", icon: "fa-seedling" },
     { to: "/admin/association", label: "Farmers Association", icon: "fa-flag" },
+    { to: "/admin/activity-log", label: "Activity Log", icon: "fa-clock-rotate-left" },
     { to: "/admin/profile", label: "Admin Profile", icon: "fa-id-badge" },
   ],
   president: [
@@ -65,6 +67,7 @@ const NAV = {
     { to: "/president/announcements", label: "Announcements", icon: "fa-bullhorn" },
     { to: "/president/reports", label: "Transparency Reports", icon: "fa-file-invoice" },
     { to: "/president/policies", label: "Policy Management", icon: "fa-scroll" },
+    { to: "/president/activity-log", label: "Activity Log", icon: "fa-clock-rotate-left" },
     { to: "/president/profile", label: "President Profile", icon: "fa-id-badge" },
   ],
 };

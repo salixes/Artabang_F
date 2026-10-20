@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useToast } from "../../context/ToastContext.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
 import { yieldUnitText } from "../../lib/businessRules";
@@ -87,6 +88,7 @@ export default function YieldReports() {
     const { data: { user } } = await supabase.auth.getUser();
     const { error } = await supabase.from("yield_records").update({ status, verified_by: user?.id }).eq("id", id);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
+    logActivity(`Marked a yield record ${status.toLowerCase()}`, "yield");
     showToast(`Yield record marked ${status.toLowerCase()}.`, "fa-wheat-awn");
     load();
   }

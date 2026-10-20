@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
@@ -46,6 +47,7 @@ export default function FarmerYield() {
     const { error } = await supabase.from("yield_records").insert(payload);
     setSaving(false);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
+    logActivity(`Reported yield: ${payload.crop_name} — ${form.quantity} ${form.unit === "Other" ? form.unit_other.trim() : form.unit}`, "yield");
     showToast("Yield reported — pending verification.", "fa-wheat-awn");
     setOpen(false);
     setForm(empty);

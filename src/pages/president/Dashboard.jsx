@@ -8,13 +8,16 @@ export default function PresidentDashboard() {
   const { profile } = useAuth();
   const [stats, setStats] = useState(null);
   const [announcements, setAnnouncements] = useState([]);
+  const [members, setMembers] = useState(0); // farmers who belong to an association
 
   useEffect(() => {
     (async () => {
-      const [{ data: statRow }, { data: announce }] = await Promise.all([
+      const [{ data: statRow }, { data: announce }, { count: memberCount }] = await Promise.all([
         supabase.from("dashboard_stats").select("*").single(),
         supabase.from("announcements").select("*").order("created_at", { ascending: false }).limit(2),
+        supabase.from("farmers").select("id", { count: "exact", head: true }).eq("is_association_member", true),
       ]);
+      setMembers(memberCount || 0);
       setStats(statRow);
       setAnnouncements(announce || []);
     })();
@@ -46,6 +49,7 @@ export default function PresidentDashboard() {
         <div className="stat-card ring-total"><div className="stat-icon"><i className="fa-solid fa-people-group"></i></div><div className="stat-num">{stats.total_farmers}</div><div className="stat-label">Total Registered Farmers</div></div>
         <div className="stat-card ring-progress"><div className="stat-icon"><i className="fa-solid fa-hourglass-half"></i></div><div className="stat-num">{stats.pending_applications}</div><div className="stat-label">Pending Assistance</div></div>
         <div className="stat-card ring-resolved"><div className="stat-icon"><i className="fa-solid fa-hand-holding-dollar"></i></div><div className="stat-num">{stats.released_assistance}</div><div className="stat-label">Assistance Released</div></div>
+        <div className="stat-card ring-total"><div className="stat-icon"><i className="fa-solid fa-users"></i></div><div className="stat-num">{members}</div><div className="stat-label">Association Members</div></div>
       </div>
       <ReleasedPieCard title="Assistance already released" />
 

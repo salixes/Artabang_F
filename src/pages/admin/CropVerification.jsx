@@ -1,8 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useToast } from "../../context/ToastContext.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
 import { PcicView } from "../farmer/PcicApplication.jsx";
+
+const FIELD_LABEL = { crop_name: "Crop", area: "Area (ha)", planting_date: "Planting date", variety: "Variety", land_category: "Land category", tenurial_status: "Tenure" };
+// "Edited by the farmer: Crop: Corn → Rice · Reason: …"
+function EditNote({ edit }) {
+  const changes = Object.entries(edit.changes || {}).map(([k, v]) => `${FIELD_LABEL[k] || k}: ${v.from ?? "—"} → ${v.to ?? "—"}`);
+  return (
+    <div style={{ fontSize: ".68rem", color: "var(--progress)", marginTop: 3, fontWeight: 400, lineHeight: 1.35 }}>
+      <i className="fa-solid fa-pen-to-square"></i> Edited by the farmer
+      <div>{changes.join(" · ")}</div>
+      <div style={{ color: "var(--ink-soft)" }}>Reason: {edit.reason}</div>
+    </div>
+  );
+}
 
 // Admin verifies the crops farmers register. A crop only counts toward assistance
 // eligibility once it is Verified; the farmer is notified of the result automatically.
@@ -14,12 +28,17 @@ export default function CropVerification({ onOpenForm } = {}) {
   const [search, setSearch] = useState("");
   const [viewForm, setViewForm] = useState(null);
   const [busy, setBusy] = useState(null);
+  const [edits, setEdits] = useState({}); // crop id -> latest farmer edit (what changed + why)
 
   async function load() {
-    const [{ data: crops }, { data: dir }] = await Promise.all([
+    const [{ data: crops }, { data: dir }, { data: eds }] = await Promise.all([
       supabase.from("crop_registrations").select("*").order("registered_at", { ascending: false }),
       supabase.from("farmer_directory").select("id, full_name"),
+      supabase.from("crop_registration_edits").select("*").order("edited_at", { ascending: false }),
     ]);
+    const latest = {};
+    (eds || []).forEach((e) => { if (!latest[e.crop_registration_id]) latest[e.crop_registration_id] = e; });
+    setEdits(latest);
     setRows(crops || []);
     setNames(Object.fromEntries((dir || []).map((d) => [d.id, d.full_name])));
   }
@@ -47,6 +66,7 @@ export default function CropVerification({ onOpenForm } = {}) {
     const { error } = await supabase.from("crop_registrations").update({ status, remarks: remarks?.trim() || null }).eq("id", row.id);
     setBusy(null);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
+    logActivity(`${status === "Verified" ? "Verified" : "Rejected"} ${row.crop_name} registration of ${names[row.farmer_id] || "a farmer"}`, "crop");
     showToast(`Crop registration ${status.toLowerCase()}. The farmer was notified.`, status === "Verified" ? "fa-circle-check" : "fa-circle-xmark");
     load();
   }
@@ -77,7 +97,7 @@ export default function CropVerification({ onOpenForm } = {}) {
             {filtered.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{filter === "Pending" ? "No crops waiting for verification." : "No crop registrations."}</td></tr>}
             {filtered.map((r) => (
               <tr key={r.id}>
-                <td>{names[r.farmer_id] || "—"}</td><td>{r.crop_name}</td><td>{r.area}</td><td>{r.planting_date}</td><td>{r.variety || "—"}</td>
+                <td>{names[r.farmer_id] || "—"}{edits[r.id] && <EditNote edit={edits[r.id]} />}</td><td>{r.crop_name}</td><td>{r.area}</td><td>{r.planting_date}</td><td>{r.variety || "—"}</td>
                 <td>{[r.land_category, r.tenurial_status].filter(Boolean).join(" · ") || "—"}</td>
                 <td>{new Date(r.registered_at).toLocaleDateString("en-PH")}</td>
                 <td><StatusBadge status={r.status} />{r.status === "Rejected" && r.remarks && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>{r.remarks}</div>}</td>

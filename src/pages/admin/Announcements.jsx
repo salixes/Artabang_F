@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
@@ -26,6 +27,7 @@ export default function AdminAnnouncements() {
     const { error } = await supabase.from("announcements").insert({ ...form, posted_by: profile.id, posted_by_role: profile.role });
     setSaving(false);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
+    logActivity("Posted an announcement", "announcement");
     showToast("Announcement posted.", "fa-bullhorn");
     setOpen(false);
     setForm(empty);

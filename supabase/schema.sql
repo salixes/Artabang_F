@@ -1566,3 +1566,222 @@ left join lateral (
 ) cr on true;
 alter view public.yield_report set (security_invoker = true);
 grant select on public.yield_report to authenticated;
+
+-- ============================================================================
+-- MIGRATION — Farmers can EDIT (not delete) a crop registration, with a reason.
+--
+--   * Farmers can no longer delete a crop registration (only the admin can).
+--   * A farmer who changes a crop (wrong plant, area, planting date, variety,
+--     land category, tenure) MUST give a reason. The change is logged, the crop goes
+--     back to "Pending" and the admin is notified to verify it again.
+--   * The admin sees what changed (old -> new) and why.
+-- Run AFTER crop_verification_qualified_notify_yield_other.sql. Safe to run more than once.
+-- ============================================================================
+
+alter table public.crop_registrations add column if not exists edit_reason text;       -- input channel: filled by the farmer, cleared by the trigger
+alter table public.crop_registrations add column if not exists last_edit_reason text; -- the reason of the most recent edit
+alter table public.crop_registrations add column if not exists edited_at timestamptz;
+
+create table if not exists public.crop_registration_edits (
+  id uuid primary key default gen_random_uuid(),
+  crop_registration_id uuid not null references public.crop_registrations(id) on delete cascade,
+  farmer_id uuid not null references public.farmers(id) on delete cascade,
+  reason text not null,
+  changes jsonb not null,
+  edited_at timestamptz not null default now()
+);
+create index if not exists idx_crop_edits_crop on public.crop_registration_edits(crop_registration_id);
+alter table public.crop_registration_edits enable row level security;
+drop policy if exists "crop_edits_select" on public.crop_registration_edits;
+create policy "crop_edits_select" on public.crop_registration_edits for select
+  using (farmer_id = auth.uid() or public.is_staff());
+
+-- only the admin may delete a crop registration
+drop policy if exists "crop_reg_delete" on public.crop_registrations;
+create policy "crop_reg_delete" on public.crop_registrations for delete
+  using (public.current_role() = 'admin');
+
+create or replace function public.guard_crop_verification() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  r public.app_role := public.current_role();
+  ch jsonb := '{}'::jsonb;
+  reason text;
+begin
+  if tg_op = 'INSERT' then
+    if r is distinct from 'admin' then          -- farmers (and anyone else) always start Pending
+      new.status := 'Pending'; new.verified_by := null; new.verified_at := null; new.remarks := null;
+    end if;
+    new.edit_reason := null;
+    return new;
+  end if;
+
+  -- ---------------- UPDATE ----------------
+  if r = 'admin' then                            -- admin: verify / reject / correct
+    if new.status is distinct from old.status then
+      if new.status in ('Verified','Rejected') then
+        new.verified_by := auth.uid(); new.verified_at := now();
+      else
+        new.verified_by := null; new.verified_at := null;
+      end if;
+    end if;
+    new.edit_reason := null;
+    return new;
+  end if;
+
+  -- farmer / anyone else: can never verify, reject or touch the verification fields
+  if new.status is distinct from old.status then
+    raise exception 'Only the admin can verify or reject a crop registration.';
+  end if;
+  new.verified_by := old.verified_by; new.verified_at := old.verified_at; new.remarks := old.remarks;
+  new.last_edit_reason := old.last_edit_reason; new.edited_at := old.edited_at;
+
+  if new.crop_name        is distinct from old.crop_name        then ch := ch || jsonb_build_object('crop_name',        jsonb_build_object('from', old.crop_name,        'to', new.crop_name)); end if;
+  if new.area             is distinct from old.area             then ch := ch || jsonb_build_object('area',             jsonb_build_object('from', old.area,             'to', new.area)); end if;
+  if new.planting_date    is distinct from old.planting_date    then ch := ch || jsonb_build_object('planting_date',    jsonb_build_object('from', old.planting_date,    'to', new.planting_date)); end if;
+  if new.variety          is distinct from old.variety          then ch := ch || jsonb_build_object('variety',          jsonb_build_object('from', old.variety,          'to', new.variety)); end if;
+  if new.land_category    is distinct from old.land_category    then ch := ch || jsonb_build_object('land_category',    jsonb_build_object('from', old.land_category,    'to', new.land_category)); end if;
+  if new.tenurial_status  is distinct from old.tenurial_status  then ch := ch || jsonb_build_object('tenurial_status',  jsonb_build_object('from', old.tenurial_status,  'to', new.tenurial_status)); end if;
+
+  if ch <> '{}'::jsonb then
+    reason := nullif(trim(coalesce(new.edit_reason, '')), '');
+    if reason is null then
+      raise exception 'Please give a reason for changing this crop registration.';
+    end if;
+    new.status := 'Pending';                     -- the MAO must verify the corrected details again
+    new.last_edit_reason := reason;
+    new.edited_at := now();
+    insert into public.crop_registration_edits (crop_registration_id, farmer_id, reason, changes)
+    values (old.id, old.farmer_id, reason, ch);
+  end if;
+  new.edit_reason := null;                       -- a reason is needed again for the next change
+  return new;
+end;
+$$;
+
+-- tell the admin a crop was edited and needs verifying again
+create or replace function public.notify_admin_crop_edited() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  who text; msg text;
+begin
+  if new.edited_at is not distinct from old.edited_at then return new; end if;
+  select coalesce(p.full_name, 'A farmer') into who from public.profiles p where p.id = new.farmer_id;
+  msg := '<b>' || replace(replace(replace(who, '&', '&amp;'), '<', '&lt;'), '>', '&gt;') || '</b> edited their <b>'
+      || replace(replace(replace(new.crop_name, '&', '&amp;'), '<', '&lt;'), '>', '&gt;') || '</b> registration — reason: '
+      || replace(replace(replace(new.last_edit_reason, '&', '&amp;'), '<', '&lt;'), '>', '&gt;') || '. Waiting for your verification.';
+  insert into public.notifications (recipient_id, icon, message, category)
+  select a.id, 'fa-pen-to-square', msg, 'crop_verification'
+  from public.profiles a
+  where a.role = 'admin'
+    and not exists (select 1 from public.notifications n where n.recipient_id = a.id and n.message = msg and n.read = false);
+  return new;
+end;
+$$;
+drop trigger if exists trg_notify_admin_crop_edited on public.crop_registrations;
+create trigger trg_notify_admin_crop_edited
+  after update on public.crop_registrations
+  for each row execute function public.notify_admin_crop_edited();
+
+-- ============================================================================
+-- MIGRATION — Activity Log (all roles).
+--
+-- Records WHO did WHAT, WHEN and from WHICH DEVICE:
+--   sign-ins / sign-outs / failed sign-ins, pages opened, and key actions.
+-- * The browser sends the parsed device (browser, OS, device type, screen ...).
+-- * The DATABASE adds what the browser can't be trusted with: the real IP
+--   address, the raw user-agent and the time (so a log can't be backdated),
+--   and flags a sign-in from a device that user hasn't used before.
+-- * A user can only read THEIR OWN log. The admin can read everyone's.
+-- * Log rows can't be edited or deleted from the app.
+-- Safe to run more than once.
+-- ============================================================================
+
+create table if not exists public.activity_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  role text,
+  action text not null check (action in ('login','logout','login_failed','page_view','action')),
+  category text,
+  description text,
+  page text,
+  device_type text,
+  browser text,
+  os text,
+  screen text,
+  language text,
+  timezone text,
+  device_key text,
+  user_agent text,
+  ip_address text,
+  is_new_device boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_activity_user_time on public.activity_log (user_id, created_at desc);
+create index if not exists idx_activity_time on public.activity_log (created_at desc);
+create index if not exists idx_activity_action on public.activity_log (action);
+
+-- server-side fields + new-device detection
+create or replace function public.activity_log_before_insert() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare
+  h json;
+begin
+  begin
+    h := current_setting('request.headers', true)::json;   -- set by Supabase's API for every request
+  exception when others then
+    h := null;
+  end;
+  new.ip_address := nullif(trim(split_part(coalesce(h->>'cf-connecting-ip', h->>'x-forwarded-for', h->>'x-real-ip', ''), ',', 1)), '');
+  new.user_agent := left(h->>'user-agent', 400);
+  new.created_at := now();                                   -- can't be backdated
+  new.role := (select p.role::text from public.profiles p where p.id = new.user_id);
+  new.description := left(new.description, 300);
+  new.page := left(new.page, 200);
+
+  new.is_new_device := false;
+  if new.action = 'login' and new.device_key is not null then
+    -- a device this user has never signed in from, but only once they already have a history
+    new.is_new_device := exists (select 1 from public.activity_log a where a.user_id = new.user_id and a.action = 'login')
+                     and not exists (select 1 from public.activity_log a where a.user_id = new.user_id and a.action = 'login' and a.device_key = new.device_key);
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists trg_activity_log_before_insert on public.activity_log;
+create trigger trg_activity_log_before_insert before insert on public.activity_log
+  for each row execute function public.activity_log_before_insert();
+
+-- row level security: own rows for everyone, all rows for the admin; append-only
+alter table public.activity_log enable row level security;
+drop policy if exists "activity_select" on public.activity_log;
+create policy "activity_select" on public.activity_log for select
+  using (user_id = auth.uid() or public.current_role() = 'admin');
+drop policy if exists "activity_insert_own" on public.activity_log;
+create policy "activity_insert_own" on public.activity_log for insert
+  with check (user_id = auth.uid() and action <> 'login_failed');
+
+-- failed sign-in attempts happen BEFORE the user is signed in, so they come through here.
+-- Only recorded when the e-mail belongs to a real account (no junk rows) and capped
+-- at 10 per account per 10 minutes.
+create or replace function public.log_login_failure(
+  p_email text, p_device_type text default null, p_browser text default null, p_os text default null,
+  p_screen text default null, p_language text default null, p_timezone text default null, p_device_key text default null
+) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  uid uuid;
+begin
+  select p.id into uid from public.profiles p where lower(p.email) = lower(trim(p_email)) limit 1;
+  if uid is null then return; end if;
+  if (select count(*) from public.activity_log a
+      where a.user_id = uid and a.action = 'login_failed' and a.created_at > now() - interval '10 minutes') >= 10 then
+    return;
+  end if;
+  insert into public.activity_log (user_id, action, category, description, device_type, browser, os, screen, language, timezone, device_key)
+  values (uid, 'login_failed', 'security', 'Failed sign-in attempt (wrong password)',
+          left(p_device_type, 40), left(p_browser, 60), left(p_os, 60), left(p_screen, 30), left(p_language, 20), left(p_timezone, 60), left(p_device_key, 160));
+end;
+$$;
+revoke execute on function public.log_login_failure(text, text, text, text, text, text, text, text) from public;
+grant execute on function public.log_login_failure(text, text, text, text, text, text, text, text) to anon, authenticated;
