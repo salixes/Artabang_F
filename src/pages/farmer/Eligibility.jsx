@@ -4,6 +4,7 @@ import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
+import ProgramDetails from "../../components/ProgramDetails.jsx";
 import { ASSISTANCE_TYPES, runQualificationCheck } from "../../lib/businessRules";
 import { recordTypeFor, isApplicationOpen, fmtDate } from "../../lib/assistancePrograms";
 
@@ -90,6 +91,7 @@ export default function FarmerEligibility() {
                   {a.deadline && <span className="aa-badge soft"><i className="fa-solid fa-calendar-day"></i> Deadline {fmtDate(a.deadline)}</span>}
                 </div>
                 <p style={{ padding: "0 4px 8px", fontSize: ".85rem", color: "var(--ink-soft)", whiteSpace: "pre-wrap" }}>{a.body}</p>
+                <ProgramDetails type={a.assistance_type} details={a.details} />
                 <ul className="detail-list">
                   {checks.map((c, i) => (
                     <li key={i}><span><i className={`fa-solid ${c.pass ? "fa-circle-check" : "fa-circle-xmark"}`} style={{ color: c.pass ? "var(--resolved)" : "var(--danger)", marginRight: 6 }}></i>{c.label}</span></li>

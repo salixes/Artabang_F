@@ -1,0 +1,17 @@
+/* Form fields get the same soft green stroke as the notification cards.
+   Applies to every text box, dropdown, date and message box in the main area
+   (announcements, reports, assistance, profile, settings ...).
+   Left alone on purpose: the RSBSA / PCIC paper forms (.rp, .pp), the search bars
+   (they already sit inside a bordered box), checkboxes / radios / switches, and
+   pop-up windows (they already have their own border). */
+.content :is(input,select,textarea):not([type=checkbox],[type=radio],[type=range],[type=file],[type=color],[type=hidden],[type=button],[type=submit],.rp *,.pp *,.rsbsa-field-cell *,.table-search *,.topbar-search *,.switch *,.modal *){
+  border:1px solid var(--sage-pale);
+  border-radius:10px;
+  background:var(--white);
+  color:var(--ink);
+  padding:9px 12px;
+  font-size:.85rem;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+.content :is(input,select,textarea):not([type=checkbox],[type=radio],[type=range],[type=file],[type=color],[type=hidden],[type=button],[type=submit],.rp *,.pp *,.rsbsa-field-cell *,.table-search *,.topbar-search *,.switch *,.modal *):hover{border-color:var(--sage);}
+.content :is(input,select,textarea):not([type=checkbox],[type=radio],[type=range],[type=file],[type=color],[type=hidden],[type=button],[type=submit],.rp *,.pp *,.rsbsa-field-cell *,.table-search *,.topbar-search *,.switch *,.modal *):focus{border-color:var(--forest);box-shadow:0 0 0 3px rgba(31,107,62,.12);outline:none;}

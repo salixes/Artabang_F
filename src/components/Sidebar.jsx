@@ -37,7 +37,6 @@ export const NAV = {
     },
     { to: "/admin/farmers", label: "Farmer Profiling", icon: "fa-people-group" },
     { to: "/admin/assistance", label: "Assistance Management", icon: "fa-hand-holding-dollar" },
-    { to: "/admin/assistance-announcement", label: "Assistance Announcement", icon: "fa-hand-holding-heart" },
     {
       group: "Reports", icon: "fa-chart-pie",
       items: [

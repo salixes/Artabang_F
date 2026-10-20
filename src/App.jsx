@@ -23,7 +23,6 @@ import AdminYield from "./pages/admin/Yield.jsx";
 import AdminInsurance from "./pages/admin/Insurance.jsx";
 import AdminAssistance from "./pages/admin/Assistance.jsx";
 import AdminAnnouncements from "./pages/admin/Announcements.jsx";
-import AssistanceAnnouncement from "./pages/admin/AssistanceAnnouncement.jsx";
 import CropApproval from "./pages/admin/CropApproval.jsx";
 import ActivityLog from "./pages/shared/ActivityLog.jsx";
 
@@ -80,7 +79,7 @@ export default function App() {
         <Route path="yield" element={<AdminYield />} />
         <Route path="insurance" element={<AdminInsurance />} />
         <Route path="assistance" element={<AdminAssistance />} />
-        <Route path="assistance-announcement" element={<AssistanceAnnouncement />} />
+        <Route path="assistance-announcement" element={<Navigate to="/admin/announcements" replace />} />
         <Route path="reports" element={<Reports title="Assistance Reports" />} />
         <Route path="association" element={<Association scope="admin" />} />
         <Route path="announcements" element={<AdminAnnouncements />} />

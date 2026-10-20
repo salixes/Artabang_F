@@ -5,6 +5,7 @@ import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
 import { ASSISTANCE_TYPES, ASSISTANCE_REQUIREMENTS } from "../../lib/businessRules";
+import { releaseSummary, releaseDetailRows } from "../../lib/assistancePrograms";
 
 export default function FarmerAssistance() {
   const { farmer } = useAuth();
@@ -45,12 +46,12 @@ export default function FarmerAssistance() {
       <div className="view-head"><h2><i className="fa-solid fa-hand-holding-dollar"></i> My Assistance Records</h2><button className="btn-primary" onClick={() => setOpen(true)}><i className="fa-solid fa-file-circle-plus"></i> Apply for Assistance</button></div>
       <div className="table-panel">
         <table className="data-table">
-          <thead><tr><th>Program</th><th>Type</th><th>Quantity</th><th>Source</th><th>Requested</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Program</th><th>Type</th><th>Received</th><th>Source</th><th>Requested</th><th>Status</th><th></th></tr></thead>
           <tbody>
             {rows.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No assistance records yet.</td></tr>}
             {rows.map((r) => (
               <tr key={r.id} style={{ cursor: "pointer" }} onClick={() => setDetailRow(r)}>
-                <td>{r.program_title || <span style={{ color: "var(--ink-soft)" }}>Direct request</span>}</td><td>{r.assistance_type}</td><td>{r.quantity ? `${r.quantity} ${r.unit || ""}` : "—"}</td><td><SourceBadge source={r.source} /></td>
+                <td>{r.program_title || <span style={{ color: "var(--ink-soft)" }}>Direct request</span>}</td><td>{r.assistance_type}</td><td>{releaseSummary(r)}</td><td><SourceBadge source={r.source} /></td>
                 <td>{new Date(r.requested_at).toLocaleDateString("en-PH")}</td><td><StatusBadge status={r.status} /></td>
                 <td><button className="btn-ghost" style={{ padding: "4px 8px", fontSize: ".7rem" }} onClick={(e) => { e.stopPropagation(); setDetailRow(r); }}><i className="fa-solid fa-eye"></i></button></td>
               </tr>
@@ -74,7 +75,9 @@ export default function FarmerAssistance() {
               {detailRow.program_title && <li><span>Program</span><b>{detailRow.program_title}</b></li>}
               <li><span>Assistance Type</span><b>{detailRow.assistance_type}</b></li>
               <li><span>Source</span><b>{detailRow.source}</b></li>
-              <li><span>Quantity</span><b>{detailRow.quantity ? `${detailRow.quantity} ${detailRow.unit || ""}` : "Not yet specified"}</b></li>
+              {releaseDetailRows(detailRow).length
+                ? releaseDetailRows(detailRow).map(([k, v]) => <li key={k}><span>{k}</span><b>{v}</b></li>)
+                : <li><span>Details</span><b>Not yet specified</b></li>}
               <li><span>Requested</span><b>{new Date(detailRow.requested_at).toLocaleDateString("en-PH")}</b></li>
               <li><span>Expected Date</span><b>{detailRow.expected_date || "—"}</b></li>
               <li><span>Distribution Date</span><b>{detailRow.distribution_date || "—"}</b></li>

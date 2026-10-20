@@ -7,6 +7,7 @@ import { ToastProvider } from "./context/ToastContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import { hasSupabaseEnv } from "./lib/supabaseClient";
 import "./index.css";
+import "./form-borders.css";
 
 // Shown instead of a blank white page when the .env file is missing.
 function MissingEnv() {
