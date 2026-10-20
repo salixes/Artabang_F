@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import Avatar from "../../components/Avatar.jsx";
@@ -40,6 +41,7 @@ export default function AdminFarmers() {
     if (!confirm(`Permanently delete ${fullNameOf(row)}'s account? This cannot be undone.`)) return;
     const { data, error } = await supabase.functions.invoke("admin-delete-user", { body: { user_id: row.id } });
     if (error || data?.error) return showToast(data?.error || error.message, "fa-triangle-exclamation");
+    logActivity(`Deleted farmer account of ${fullNameOf(row)}`, "farmer");
     showToast("Farmer account deleted.", "fa-trash");
     load();
   }

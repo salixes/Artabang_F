@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Avatar from "../../components/Avatar.jsx";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
@@ -76,6 +77,7 @@ export default function FarmerProfile() {
       }).eq("id", farmer.id);
       if (farmErr) throw farmErr;
 
+      logActivity("Updated profile information", "profile");
       showToast("Profile updated.", "fa-circle-check");
       setEditOpen(false);
       await load();
@@ -108,6 +110,7 @@ export default function FarmerProfile() {
     });
     setCropsSaving(false);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
+    logActivity("Requested a change to registered crops", "crop");
     showToast("Crop change request submitted — awaiting ADMIN review.", "fa-hourglass-half");
     setCropsOpen(false);
     load();
@@ -123,6 +126,7 @@ export default function FarmerProfile() {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setPassSaving(false);
     if (error) return setPassError(error.message);
+    logActivity("Changed password", "security");
     showToast("Password changed.", "fa-key");
     setPassOpen(false);
     setNewPassword(""); setConfirmPassword("");

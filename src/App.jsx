@@ -25,6 +25,7 @@ import AdminAssistance from "./pages/admin/Assistance.jsx";
 import AdminAnnouncements from "./pages/admin/Announcements.jsx";
 import AssistanceAnnouncement from "./pages/admin/AssistanceAnnouncement.jsx";
 import CropApproval from "./pages/admin/CropApproval.jsx";
+import ActivityLog from "./pages/shared/ActivityLog.jsx";
 
 import PresidentDashboard from "./pages/president/Dashboard.jsx";
 import FarmersProfile from "./pages/president/FarmersProfile.jsx";
@@ -57,6 +58,7 @@ export default function App() {
       <Route path="/farmer" element={<ProtectedRoute allow="farmer"><Layout role="farmer" /></ProtectedRoute>}>
         <Route index element={<FarmerDashboard />} />
         <Route path="profile" element={<FarmerProfile />} />
+        <Route path="activity-log" element={<ActivityLog />} />
         <Route path="crops" element={<FarmerCrops />} />
         <Route path="yield" element={<FarmerYield />} />
         <Route path="insurance" element={<FarmerInsurance />} />
@@ -83,6 +85,7 @@ export default function App() {
         <Route path="association" element={<Association scope="admin" />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="profile" element={<StaffProfile roleLabel="ADMIN" />} />
+        <Route path="activity-log" element={<ActivityLog />} />
       </Route>
 
       {/* PRESIDENT */}
@@ -99,6 +102,7 @@ export default function App() {
         <Route path="meetings" element={<Meetings />} />
         <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="profile" element={<StaffProfile roleLabel="Association President" />} />
+        <Route path="activity-log" element={<ActivityLog />} />
       </Route>
 
       <Route path="*" element={<RootRedirect />} />

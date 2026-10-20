@@ -187,8 +187,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .notif-panel,.avatar-menu{position:absolute;top:48px;right:0;background:#fff;border-radius:var(--radius-md);box-shadow:var(--shadow-lift);width:280px;padding:16px;z-index:70;animation:dropIn .2s ease both;}
 @keyframes dropIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 .notif-panel h4{font-size:.85rem;margin-bottom:10px;color:var(--forest-deep);}
-.notif-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--cream-2);}
-.notif-item:last-child{border-bottom:none;}
+.notif-item{display:flex;gap:10px;padding:10px 12px;margin-bottom:8px;border:1.5px solid var(--sage);border-radius:12px;background:var(--white);}
+.notif-item:last-child{margin-bottom:0;}
 .notif-item i{margin-top:2px;}
 .notif-item i.ok{color:var(--resolved);}
 .notif-item i.gold{color:var(--gold);}
@@ -947,3 +947,39 @@ body.dark .rel-pie-svg path,body.dark .rel-pie-svg circle{stroke:#182B20;}
 .avatar-add.clickable:hover{background:var(--cream-2);transform:scale(1.03);}
 .avatar-btn .avatar-add{border-width:1.5px;}
 .avatar-btn{padding:0;display:inline-flex;}
+.notif-item:hover{border-color:var(--forest);}
+body.dark .notif-item{border-color:rgba(255,255,255,.18);}
+body.dark .notif-item:hover{border-color:#7FD19A;}
+.farmer-card .f-assoc{font-size:.74rem;font-weight:600;color:var(--forest-deep);margin:6px 0 0;display:flex;align-items:center;justify-content:center;gap:6px;}
+
+/* ---- Activity Log ---- */
+.al-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px;}
+.al-stat{background:var(--white);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow-soft);border-left:4px solid var(--forest);}
+.al-stat b{display:block;font-family:var(--font-display);font-size:1.6rem;line-height:1.1;color:var(--forest-deep);}
+.al-stat span{font-size:.75rem;color:var(--ink-soft);}
+.al-stat.bad{border-left-color:#C24444;}.al-stat.bad b{color:#C24444;}
+.al-stat.warn{border-left-color:#E8934A;}.al-stat.warn b{color:#D9772B;}
+.al-tabs{display:inline-flex;gap:4px;background:var(--sage-pale);padding:4px;border-radius:999px;margin-bottom:14px;flex-wrap:wrap;}
+.al-tabs button{border:none;background:transparent;padding:7px 16px;border-radius:999px;font-weight:600;font-size:.82rem;cursor:pointer;color:var(--forest-deep);}
+.al-tabs button.on{background:var(--forest-deep);color:#fff;}
+body.dark .al-tabs button.on{background:#1F6B3E;}
+.al-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;}
+.al-date{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink-soft);}
+.al-badge{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;font-weight:700;padding:2px 9px;border-radius:999px;margin-right:6px;}
+.al-badge.ok{background:#DCEFE1;color:#1F6B3E;}
+.al-badge.info{background:#E3EDF7;color:#2D6AA3;}
+.al-badge.bad{background:#F8DEDE;color:#B03636;}
+.al-badge.warn{background:#FCE9D6;color:#B8651B;}
+.al-badge.page{background:#EFEFEA;color:#5A6659;}
+.al-badge.act{background:#EBE3F5;color:#6B46A3;}
+body.dark .al-badge.ok{background:#1F3B2A;color:#8FD3A3;}
+body.dark .al-badge.info{background:#1E3042;color:#8DBCE8;}
+body.dark .al-badge.bad{background:#472222;color:#F0A0A0;}
+body.dark .al-badge.warn{background:#46321D;color:#F0B47C;}
+body.dark .al-badge.page{background:#2A3A2F;color:#B7C7BA;}
+body.dark .al-badge.act{background:#32284A;color:#C9B5EE;}
+.al-dev{display:flex;gap:9px;align-items:flex-start;font-size:.82rem;}
+.al-dev>i{margin-top:3px;color:var(--forest);width:16px;text-align:center;flex:none;}
+.al-dev small{display:block;color:var(--ink-soft);font-size:.7rem;}
+.al-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2F9E5B;margin-right:6px;box-shadow:0 0 0 3px rgba(47,158,91,.2);}
+.al-admin-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:.68rem;font-weight:700;background:var(--gold);color:#fff;padding:3px 10px;border-radius:999px;vertical-align:middle;margin-left:8px;}

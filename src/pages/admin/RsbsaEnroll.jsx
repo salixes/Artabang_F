@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useToast } from "../../context/ToastContext.jsx";
 import RsbsaPaper from "../../components/RsbsaPaper.jsx";
 import { useRsbsaValues } from "../../lib/useRsbsaValues";
@@ -79,6 +80,7 @@ function Editor({ farmer, edit, initial, associations, onCancel, onSaved }) {
         showErrors([{ key: "_save", msg }]);
         return showToast(msg, "fa-triangle-exclamation");
       }
+      logActivity(`Enrolled farmer ${full_name}`, "farmer");
       showToast(`Farmer enrolled. Transaction code: ${transactionCode(v)}`, "fa-user-plus");
       return onSaved();
     }
@@ -94,6 +96,7 @@ function Editor({ farmer, edit, initial, associations, onCancel, onSaved }) {
       showErrors([{ key: "_save", msg }]);
       return showToast(error.message, "fa-triangle-exclamation");
     }
+    logActivity(`Updated farmer record of ${full_name}`, "farmer");
     showToast("Farmer record updated.", "fa-floppy-disk");
     onSaved();
   }

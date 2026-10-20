@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { supabase, supabaseAuthOnly } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Avatar from "../../components/Avatar.jsx";
@@ -34,6 +35,7 @@ export default function StaffProfile({ roleLabel }) {
     }).eq("id", profile.id);
     setSaving(false);
     if (error) return showToast(migrationHint(error.message), "fa-triangle-exclamation");
+    logActivity("Updated profile information", "profile");
     showToast("Profile updated.", "fa-floppy-disk");
     refreshProfile();
   }
@@ -50,6 +52,7 @@ export default function StaffProfile({ roleLabel }) {
     const { error } = await supabase.from("profiles").update({ avatar_url: pub.publicUrl, updated_at: new Date().toISOString() }).eq("id", profile.id);
     setPhotoBusy(false);
     if (error) return showToast(migrationHint(error.message), "fa-triangle-exclamation");
+    logActivity("Changed profile photo", "profile");
     showToast("Profile photo updated.", "fa-camera");
     refreshProfile();
   }
@@ -60,6 +63,7 @@ export default function StaffProfile({ roleLabel }) {
     const { error } = await supabase.from("profiles").update({ avatar_url: null, updated_at: new Date().toISOString() }).eq("id", profile.id);
     setPhotoBusy(false);
     if (error) return showToast(migrationHint(error.message), "fa-triangle-exclamation");
+    logActivity("Removed profile photo", "profile");
     showToast("Profile photo removed.", "fa-trash");
     refreshProfile();
   }
@@ -77,6 +81,7 @@ export default function StaffProfile({ roleLabel }) {
     setPwBusy(false);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
     setPw({ current: "", next: "", confirm: "" });
+    logActivity("Changed password", "security");
     showToast("Password changed.", "fa-key");
   }
 

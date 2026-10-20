@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import PcicPaper from "../../components/PcicPaper.jsx";
@@ -52,6 +53,7 @@ export default function PcicApplication({ onCancel, onSaved }) {
       showErrors([{ key: "_save", msg }]);
       return showToast(msg, "fa-triangle-exclamation");
     }
+    logActivity(`Registered crop ${insurance.crop_name} (PCIC application)`, "crop");
     showToast("Crop registered and PCIC insurance application filed.", "fa-shield-heart");
     onSaved();
   }

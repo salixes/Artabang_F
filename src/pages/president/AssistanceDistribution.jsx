@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
@@ -49,6 +50,7 @@ export default function AssistanceDistribution() {
       quantity: form.quantity === "" ? null : Number(form.quantity), unit: form.quantity === "" ? null : form.unit,
     }).eq("id", reviewRow.id);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
+    logActivity("Recommended an assistance request to the admin for release", "assistance");
     showToast("Recommended to ADMIN for final release.", "fa-thumbs-up");
     setReviewRow(null);
     load();

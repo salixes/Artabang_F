@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
+import { logActivity } from "../../lib/activity";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
@@ -76,6 +77,7 @@ export default function AdminAssistance() {
       recipient_id: reviewRow.farmer_id, icon: status === "Released" ? "fa-circle-check" : status === "Denied" ? "fa-circle-xmark" : "fa-hourglass-half",
       message: `Your <b>${reviewRow.program_title || reviewRow.assistance_type}</b> application was marked <b>${status}</b>${payload.quantity ? ` (${payload.quantity} ${payload.unit})` : ""}.`,
     });
+    logActivity(`Marked ${reviewRow.program_title || reviewRow.assistance_type} of ${directory[reviewRow.farmer_id]?.full_name || "a farmer"} as ${status}`, "assistance");
     showToast(`Application ${status.toLowerCase()}.`, "fa-hand-holding-dollar");
     setReviewRow(null);
     load();
