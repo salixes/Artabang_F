@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useTheme } from "../context/ThemeContext.jsx";
 import Avatar from "./Avatar.jsx";
+import GlobalSearch from "./GlobalSearch.jsx";
 import { notificationPath } from "../lib/assistancePrograms";
 
 export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
@@ -53,7 +54,7 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
   return (
     <header className="topbar">
       <button className="icon-btn mobile-only" onClick={onOpenMobileMenu} aria-label="Open menu"><i className="fa-solid fa-bars"></i></button>
-      <div className="topbar-search"><i className="fa-solid fa-magnifying-glass"></i><input placeholder="Search farmers, crops, assistance records…" /></div>
+      <GlobalSearch />
       <div className="topbar-widgets">
         <div className="clock-widget">
           <i className="fa-regular fa-clock"></i>
