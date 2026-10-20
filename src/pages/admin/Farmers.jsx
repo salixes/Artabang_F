@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { logActivity } from "../../lib/activity";
 import { useToast } from "../../context/ToastContext.jsx";
@@ -15,7 +16,10 @@ export default function AdminFarmers() {
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [associations, setAssociations] = useState([]);
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  // opened from the top search bar: /admin/farmers?q=<name>
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  useEffect(() => { const q = searchParams.get("q"); if (q !== null) setSearch(q); }, [searchParams]);
   // null = list | { farmer: null } = new enrollment | { farmer: row } = edit
   const [enroll, setEnroll] = useState(null);
   const [detailRow, setDetailRow] = useState(null);

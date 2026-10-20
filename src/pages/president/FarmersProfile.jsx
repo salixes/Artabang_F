@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import Modal from "../../components/Modal.jsx";
 import Avatar from "../../components/Avatar.jsx";
@@ -14,7 +14,10 @@ const NOT_MEMBER = "Not a member";
 export default function FarmersProfile() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  // opened from the top search bar: /president/farmers-profile?q=<name>
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  useEffect(() => { const q = searchParams.get("q"); if (q !== null) setSearch(q); }, [searchParams]);
   const [assoc, setAssoc] = useState("All");
   const [detailRow, setDetailRow] = useState(null);
 
