@@ -1,5 +1,5 @@
 import { todayISO } from "./rsbsaForm";
-import { CROP_LIST, INSURANCE_SOURCES, formatPeso } from "./businessRules";
+import { CROP_LIST, INSURANCE_SOURCES, ASSISTANCE_SOURCES, formatPeso } from "./businessRules";
 
 // An "Assistance" announcement type -> the assistance_records type it creates.
 // (The database trigger applies the same mapping, so the client can't get it wrong.)
@@ -42,34 +42,39 @@ const TERMS = ["Given outright", "Loaned — must be returned"];
 // 1) The PROGRAM: what the admin announces (saved in assistance_announcements.details)
 export const PROGRAM_FIELDS = {
   "Cash Assistance": [
+    { key: "source", label: "Where the assistance comes from", type: "select", options: ASSISTANCE_SOURCES, required: true },
     { key: "amount", label: "Amount per farmer (₱)", type: "number", required: true, placeholder: "e.g. 3000" },
-    { key: "release_mode", label: "How it will be released", type: "select", options: CASH_MODES, required: true },
     { key: "venue", label: "Where / when to claim", type: "text", placeholder: "e.g. Barangay Hall, Oct 30, 8 AM" },
   ],
   "Seeds": [
+    { key: "source", label: "Where the assistance comes from", type: "select", options: ASSISTANCE_SOURCES, required: true },
     { key: "item", label: "Seed type / variety", type: "text", required: true, placeholder: "e.g. Certified hybrid corn seeds" },
     { key: "quantity", label: "Quantity per farmer", type: "number", required: true },
     { key: "unit", label: "Unit", type: "select", options: ["Kilograms", "Sacks", "Bags"], required: true },
     { key: "venue", label: "Where / when to claim", type: "text" },
   ],
   "Fertilizer": [
+    { key: "source", label: "Where the assistance comes from", type: "select", options: ASSISTANCE_SOURCES, required: true },
     { key: "item", label: "Fertilizer type", type: "select", options: FERTILIZERS, required: true },
     { key: "quantity", label: "Quantity per farmer", type: "number", required: true },
     { key: "unit", label: "Unit", type: "select", options: ["Bags", "Sacks", "Kilograms", "Liters"], required: true },
     { key: "venue", label: "Where / when to claim", type: "text" },
   ],
   "Farming Equipment": [
+    { key: "source", label: "Where the assistance comes from", type: "select", options: ASSISTANCE_SOURCES, required: true },
     { key: "item", label: "Equipment", type: "text", required: true, placeholder: "e.g. Hand tractor, knapsack sprayer" },
     { key: "quantity", label: "Units available", type: "number", required: true },
     { key: "terms", label: "Terms", type: "select", options: TERMS, required: true },
     { key: "venue", label: "Where / when to claim", type: "text" },
   ],
   "Crop Insurance": [
+    { key: "source", label: "Where the assistance comes from", type: "select", options: ASSISTANCE_SOURCES, required: true },
     { key: "insurer", label: "Insurer / provider", type: "select", options: INSURANCE_SOURCES, required: true },
     { key: "coverage", label: "What is covered", type: "text", placeholder: "e.g. Typhoon, flood and drought damage" },
     { key: "subsidy", label: "Premium", type: "select", options: ["Fully subsidized (free to the farmer)", "Partly subsidized", "Paid by the farmer"], required: true },
   ],
   "Other Support Program": [
+    { key: "source", label: "Where the assistance comes from", type: "select", options: ASSISTANCE_SOURCES, required: true },
     { key: "item", label: "What is being given", type: "text", required: true },
     { key: "venue", label: "Where / when to claim", type: "text" },
   ],
@@ -168,12 +173,26 @@ export function defaultsFromProgram(recordType, programDetails) {
   return out;
 }
 
-// Where clicking a notification should take the user.
+// Where clicking a notification should take the user (null = no matching page).
+const plain = (html) => String(html || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim().toLowerCase();
 export function notificationPath(n, role) {
-  if (n.category === "announcement") return `/${role}/announcements`;
-  if (n.category === "assistance") return `/${role}/eligibility`;      // farmer: see eligibility + apply
-  if (n.category === "application") return `/${role}/assistance`;      // admin: Assistance Management
-  if (n.category === "crop_verification") return `/${role}/crops`;      // admin: Crop Verification
-  if (n.category === "crop") return `/${role}/crops`;                   // farmer: result of their crop registration
+  const byCategory = {
+    announcement: `/${role}/announcements`,
+    assistance: `/${role}/eligibility`,        // an assistance was posted / "you are eligible"  -> My Eligibility
+    assistance_result: `/${role}/assistance`,  // "your application was marked Released"          -> My Assistance records
+    application: `/${role}/assistance`,        // admin: a farmer applied                          -> Assistance Management
+    crop_verification: `/${role}/crops`,       // admin: a crop waits for verification             -> Crop Approval
+    crop: `/${role}/crops`,                    // farmer: result of a crop registration            -> Crop Registration
+    yield: `/${role}/yield`,                   // admin: Yield Reports · farmer: My Yield Records
+  };
+  if (n.category && byCategory[n.category]) return byCategory[n.category];
+  // notifications saved before categories existed: decide from the wording
+  const t = plain(n.message);
+  if (/application was marked|applied for/.test(t)) return `/${role}/assistance`;
+  if (/profile update|profile was/.test(t)) return `/${role}/profile`;
+  if (/yield/.test(t)) return `/${role}/yield`;
+  if (/crop registration|registered crop|crop/.test(t)) return `/${role}/crops`;
+  if (/insurance/.test(t)) return `/${role}/insurance`;
+  if (/eligible|was posted/.test(t)) return `/${role}/eligibility`;
   return null;
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import { programDetailRows } from "../lib/assistancePrograms";
 import "./programDetails.css";
+import { tr } from "../lib/i18n";
 
 // "What is being given" for a posted assistance (amount, seed type, quantity ...)
 export default function ProgramDetails({ type, details }) {
@@ -8,7 +9,7 @@ export default function ProgramDetails({ type, details }) {
   if (!rows.length) return null;
   return (
     <ul className="pd-list">
-      {rows.map(([k, v]) => <li key={k}><span>{k}</span><b>{v}</b></li>)}
+      {rows.map(([k, v]) => <li key={k}><span>{tr(k)}</span><b>{tr(v)}</b></li>)}
     </ul>
   );
 }
@@ -19,11 +20,11 @@ export function DynamicFields({ fields, values, onChange, requiredAttr = false }
     <div className="rsbsa-grid">
       {fields.filter((f) => !f.showIf || f.showIf(values)).map((f) => (
         <label key={f.key}>
-          {f.label}{f.required && <span style={{ color: "var(--danger)" }}> *</span>}
+          {tr(f.label)}{f.required && <span style={{ color: "var(--danger)" }}> *</span>}
           {f.type === "select" ? (
             <select value={values[f.key] ?? ""} onChange={(e) => onChange(f.key, e.target.value)} required={requiredAttr && f.required}>
-              <option value="">Select…</option>
-              {f.options.map((o) => <option key={o}>{o}</option>)}
+              <option value="">{tr("Select…")}</option>
+              {f.options.map((o) => <option key={o} value={o}>{tr(o)}</option>)}
             </select>
           ) : (
             <input

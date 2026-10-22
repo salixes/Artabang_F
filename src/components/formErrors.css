@@ -1,0 +1,3 @@
+/* The RSBSA / PCIC forms no longer print a long "please complete…" list at the top:
+   the fields that still need filling in simply turn red. */
+.rp-errs,.pp-errs{display:none !important;}

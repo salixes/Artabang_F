@@ -24,6 +24,38 @@ export default function AdminFarmers() {
   const [enroll, setEnroll] = useState(null);
   const [detailRow, setDetailRow] = useState(null);
   const [rsbsaRow, setRsbsaRow] = useState(null);
+  // the crops this farmer registered (live from Crop Registration, so approved changes always show)
+  const [detailCrops, setDetailCrops] = useState([]);
+  useEffect(() => {
+    if (!detailRow) { setDetailCrops([]); return undefined; }
+    let off = false;
+    supabase.from("crop_registrations").select("id, crop_name, area, planting_date, variety, land_category, tenurial_status, status").eq("farmer_id", detailRow.id).order("registered_at", { ascending: false })
+      .then(({ data }) => { if (!off) setDetailCrops(data || []); });
+    return () => { off = true; };
+  }, [detailRow]);
+  // "Create account only": no form now, the farmer fills out the RSBSA form in their own account
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [quick, setQuick] = useState({ full_name: "", email: "", password: "", contact_number: "" });
+  const [quickBusy, setQuickBusy] = useState(false);
+
+  async function createQuick(e) {
+    e.preventDefault();
+    if (quick.password.length < 6) return showToast("Temporary password must be at least 6 characters.", "fa-triangle-exclamation");
+    setQuickBusy(true);
+    let data, error;
+    try {
+      ({ data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: { full_name: quick.full_name.trim(), email: quick.email.trim(), password: quick.password, role: "farmer", contact_number: quick.contact_number.trim() || null },
+      }));
+    } catch (err) { error = err; }
+    setQuickBusy(false);
+    if (error || data?.error) return showToast(data?.error || error?.message || "Could not create the account.", "fa-triangle-exclamation");
+    logActivity(`Created farmer account for ${quick.full_name.trim()} (RSBSA form to be filled by the farmer)`, "farmer");
+    showToast("Account created. Give the farmer the e-mail and temporary password.", "fa-user-plus");
+    setQuickOpen(false);
+    setQuick({ full_name: "", email: "", password: "", contact_number: "" });
+    load();
+  }
 
   async function load() {
     const [{ data: dir }, { data: assoc }] = await Promise.all([
@@ -68,10 +100,11 @@ export default function AdminFarmers() {
         <h2><i className="fa-solid fa-people-group"></i> Farmer Profiling (RSBSA)</h2>
         <div className="head-actions">
           <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, location, or RSBSA number…" /></div>
-          <button className="btn-primary" onClick={() => setEnroll({ farmer: null })}><i className="fa-solid fa-user-plus"></i> Add Farmer</button>
+          <button className="btn-ghost" onClick={() => setQuickOpen(true)}><i className="fa-solid fa-user-plus"></i> Create Account Only</button>
+          <button className="btn-primary" onClick={() => setEnroll({ farmer: null })}><i className="fa-solid fa-file-pen"></i> Add Farmer (fill RSBSA form)</button>
         </div>
       </div>
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Add Farmer opens the official RSBSA Enrollment Form (2 long bond sheets: Parts 1–2, then Parts 3–4).</p>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>Two ways to enroll a new farmer: <b>Add Farmer</b> opens the official RSBSA Enrollment Form for you to fill out (for farmers who did not bring a phone). <b>Create Account Only</b> makes just the login. The farmer then fills out and signs the form in their own account, and you validate it in RSBSA Validation.</span></p>
 
       <div className="farmer-grid">
         {filtered.length === 0 && <p className="hint-text">No farmers found.</p>}
@@ -92,6 +125,21 @@ export default function AdminFarmers() {
         ))}
       </div>
 
+      {/* CREATE ACCOUNT ONLY */}
+      <Modal open={quickOpen} onClose={() => setQuickOpen(false)} title="Create farmer account" icon="fa-user-plus">
+        <form className="modal-body" onSubmit={createQuick}>
+          <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-circle-info"></i> <span>This only creates the login. The farmer signs in, fills out and signs the RSBSA Enrollment Form, and you validate it in <b>RSBSA Validation</b>.</span></p>
+          <label>Full name <input value={quick.full_name} onChange={(e) => setQuick({ ...quick, full_name: e.target.value })} required /></label>
+          <label>Login e-mail <input type="email" value={quick.email} onChange={(e) => setQuick({ ...quick, email: e.target.value })} required autoComplete="off" /></label>
+          <label>Temporary password <input type="text" minLength={6} value={quick.password} onChange={(e) => setQuick({ ...quick, password: e.target.value })} required autoComplete="off" /></label>
+          <label>Contact number (optional) <input value={quick.contact_number} onChange={(e) => setQuick({ ...quick, contact_number: e.target.value })} placeholder="09XX-XXX-XXXX" /></label>
+          <div className="modal-actions">
+            <button type="button" className="btn-ghost" onClick={() => setQuickOpen(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={quickBusy}>{quickBusy ? "Creating…" : "Create account"}</button>
+          </div>
+        </form>
+      </Modal>
+
       {/* VIEW DETAILS MODAL */}
       <Modal open={!!detailRow} onClose={() => setDetailRow(null)} title={detailRow ? fullNameOf(detailRow) : ""} icon="fa-id-card" wide>
         {detailRow && (
@@ -109,6 +157,18 @@ export default function AdminFarmers() {
               <li><span>Total Verified Yield</span><b>{Number(detailRow.total_verified_yield).toLocaleString()} kg</b></li>
               <li><span>Consent on File</span><b>{detailRow.consent_given ? `Yes (${detailRow.consent_date})` : "Not yet recorded"}</b></li>
             </ul>
+            <div className="rsbsa-subhead"><span>Registered crops</span></div>
+            <div className="table-panel" style={{ boxShadow: "none" }}>
+              <table className="data-table">
+                <thead><tr><th>Crop</th><th>Area (ha)</th><th>Planting date</th><th>Variety</th><th>Land / Tenure</th><th>Status</th></tr></thead>
+                <tbody>
+                  {detailCrops.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No registered crops yet.</td></tr>}
+                  {detailCrops.map((c) => (
+                    <tr key={c.id}><td>{c.crop_name}</td><td>{c.area}</td><td>{c.planting_date || "—"}</td><td>{c.variety || "—"}</td><td>{[c.land_category, c.tenurial_status].filter(Boolean).join(" · ") || "—"}</td><td>{c.status}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div className="modal-actions"><button className="btn-primary" onClick={() => { setDetailRow(null); setRsbsaRow(detailRow); }}><i className="fa-solid fa-file-lines"></i> View / Print RSBSA Form</button></div>
           </div>
         )}

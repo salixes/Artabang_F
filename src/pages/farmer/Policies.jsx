@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { tr } from "../../lib/i18n";
 
 export default function FarmerPolicies() {
   const { farmer } = useAuth();
@@ -14,8 +15,8 @@ export default function FarmerPolicies() {
 
   return (
     <section>
-      <div className="view-head"><h2><i className="fa-solid fa-scroll"></i> Association Policies</h2></div>
-      {!farmer?.association_id && <p className="hint-text"><i className="fa-solid fa-circle-info"></i> You are not currently a member of a farmers association.</p>}
+      <div className="view-head"><h2><i className="fa-solid fa-scroll"></i> {tr("Association Policies")}</h2></div>
+      {!farmer?.association_id && <p className="hint-text"><i className="fa-solid fa-circle-info"></i> {tr("You are not currently a member of a farmers association.")}</p>}
       <div className="program-grid">
         {rows.map((p) => (
           <div className="panel" key={p.id}>

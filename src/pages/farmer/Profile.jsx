@@ -5,23 +5,19 @@ import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
-import { StatusBadge } from "../../components/Badges.jsx";
-import { CROP_LIST } from "../../lib/businessRules";
+import PhoneInput, { phoneError, phoneDigits } from "../../components/PhoneInput.jsx";
+import { tr } from "../../lib/i18n";
 
 export default function FarmerProfile() {
   const { farmer, profile, refreshProfile } = useAuth();
   const { showToast } = useToast();
   const [directoryRow, setDirectoryRow] = useState(null);
-  const [pendingCropRequest, setPendingCropRequest] = useState(null);
+  const [associations, setAssociations] = useState([]);   // LIFA, Lindasan
 
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [saving, setSaving] = useState(false);
-
-  const [cropsOpen, setCropsOpen] = useState(false);
-  const [cropsForm, setCropsForm] = useState([]);
-  const [cropsSaving, setCropsSaving] = useState(false);
 
   const [passOpen, setPassOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -33,10 +29,8 @@ export default function FarmerProfile() {
     if (!farmer?.id) return;
     const { data } = await supabase.from("farmer_directory").select("*").eq("id", farmer.id).single();
     setDirectoryRow(data);
-    const { data: pending } = await supabase
-      .from("crop_change_requests").select("*").eq("farmer_id", farmer.id).eq("status", "Pending")
-      .order("requested_at", { ascending: false }).limit(1).maybeSingle();
-    setPendingCropRequest(pending || null);
+    const { data: assoc } = await supabase.from("associations").select("id, name").order("name");
+    setAssociations(assoc || []);
   }
   useEffect(() => { load(); }, [farmer?.id]);
 
@@ -48,6 +42,7 @@ export default function FarmerProfile() {
       location: directoryRow.location || "",
       farm_size: directoryRow.farm_size || "",
       is_association_member: directoryRow.is_association_member,
+      association_id: directoryRow.association_id || "",
     });
     setPhotoFile(null);
     setEditOpen(true);
@@ -55,6 +50,9 @@ export default function FarmerProfile() {
 
   async function submitEdit(e) {
     e.preventDefault();
+    const phoneMsg = phoneError(editForm.contact_number, { required: true });
+    if (phoneMsg) return showToast(phoneMsg, "fa-triangle-exclamation");
+    if (editForm.is_association_member && !editForm.association_id) return showToast("Please choose which association you belong to.", "fa-triangle-exclamation");
     setSaving(true);
     try {
       let photo_url = directoryRow.photo_url;
@@ -67,18 +65,18 @@ export default function FarmerProfile() {
       }
 
       const { error: profErr } = await supabase.from("profiles").update({
-        contact_number: editForm.contact_number, updated_at: new Date().toISOString(),
+        contact_number: phoneDigits(editForm.contact_number), updated_at: new Date().toISOString(),
       }).eq("id", farmer.id);
       if (profErr) throw profErr;
 
       const { error: farmErr } = await supabase.from("farmers").update({
         location: editForm.location, farm_size: editForm.farm_size ? Number(editForm.farm_size) : null,
-        is_association_member: editForm.is_association_member, photo_url, updated_at: new Date().toISOString(),
+        is_association_member: editForm.is_association_member, association_id: editForm.is_association_member ? editForm.association_id : null, photo_url, updated_at: new Date().toISOString(),
       }).eq("id", farmer.id);
       if (farmErr) throw farmErr;
 
       logActivity("Updated profile information", "profile");
-      showToast("Profile updated.", "fa-circle-check");
+      showToast(tr("Profile updated."), "fa-circle-check");
       setEditOpen(false);
       await load();
       await refreshProfile();
@@ -87,33 +85,6 @@ export default function FarmerProfile() {
     } finally {
       setSaving(false);
     }
-  }
-
-  const [otherCropText, setOtherCropText] = useState("");
-
-  // ---- Crop change request (needs ADMIN approval before it takes effect) ----
-  function openCropsRequest() {
-    setCropsForm(directoryRow.crops || []);
-    setOtherCropText("");
-    setCropsOpen(true);
-  }
-
-  async function submitCropsRequest(e) {
-    e.preventDefault();
-    setCropsSaving(true);
-    const finalCrops = cropsForm.filter((c) => c !== "Other");
-    if (cropsForm.includes("Other") && otherCropText.trim()) {
-      otherCropText.split(",").map((c) => c.trim()).filter(Boolean).forEach((c) => { if (!finalCrops.includes(c)) finalCrops.push(c); });
-    }
-    const { error } = await supabase.from("crop_change_requests").insert({
-      farmer_id: farmer.id, old_crops: directoryRow.crops || [], new_crops: finalCrops,
-    });
-    setCropsSaving(false);
-    if (error) return showToast(error.message, "fa-triangle-exclamation");
-    logActivity("Requested a change to registered crops", "crop");
-    showToast("Crop change request submitted — awaiting ADMIN review.", "fa-hourglass-half");
-    setCropsOpen(false);
-    load();
   }
 
   // ---- Password change (direct via Supabase Auth — never needs approval) ----
@@ -127,25 +98,25 @@ export default function FarmerProfile() {
     setPassSaving(false);
     if (error) return setPassError(error.message);
     logActivity("Changed password", "security");
-    showToast("Password changed.", "fa-key");
+    showToast(tr("Password changed."), "fa-key");
     setPassOpen(false);
     setNewPassword(""); setConfirmPassword("");
   }
 
-  if (!directoryRow) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> Loading profile…</p>;
+  if (!directoryRow) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> {tr("Loading profile…")}</p>;
 
   return (
     <section>
       <div className="view-head">
-        <h2><i className="fa-solid fa-id-card"></i> My Profile</h2>
+        <h2><i className="fa-solid fa-id-card"></i> {tr("My Profile")}</h2>
         <div className="head-actions">
-          <button className="btn-ghost" onClick={() => setPassOpen(true)}><i className="fa-solid fa-key"></i> Change Password</button>
-          <button className="btn-primary" onClick={openEdit}><i className="fa-solid fa-pen"></i> Edit Profile</button>
+          <button className="btn-ghost" onClick={() => setPassOpen(true)}><i className="fa-solid fa-key"></i> {tr("Change Password")}</button>
+          <button className="btn-primary" onClick={openEdit}><i className="fa-solid fa-pen"></i> {tr("Edit Profile")}</button>
         </div>
       </div>
 
       {!directoryRow.photo_url && (
-        <div className="profile-photo-note warn"><i className="fa-solid fa-triangle-exclamation"></i> No profile photo uploaded — required to qualify for any assistance. Please update it.</div>
+        <div className="profile-photo-note warn"><i className="fa-solid fa-triangle-exclamation"></i> {tr("No profile photo uploaded — required to qualify for any assistance. Please update it.")}</div>
       )}
 
       <div className="profile-center-wrap">
@@ -155,77 +126,59 @@ export default function FarmerProfile() {
             <div><p style={{ fontWeight: 600, fontSize: "1.1rem" }}>{directoryRow.full_name}</p><p className="hint-text">{directoryRow.email}</p></div>
           </div>
           <ul className="detail-list">
-            <li><span>Contact Number</span><b>{profile.contact_number || "—"}</b></li>
-            <li><span>Location</span><b>{directoryRow.location || "—"}</b></li>
-            <li><span>Farm Size</span><b>{directoryRow.farm_size ? `${directoryRow.farm_size} ha` : "—"}</b></li>
-            <li><span>Association</span><b>{directoryRow.is_association_member ? (directoryRow.association_name || "Member") : "Not a member"}</b></li>
-            <li><span>Last Updated</span><b>{new Date(directoryRow.updated_at).toLocaleString("en-PH")}</b></li>
+            <li><span>{tr("Contact Number")}</span><b>{profile.contact_number || "—"}</b></li>
+            <li><span>{tr("Location")}</span><b>{directoryRow.location || "—"}</b></li>
+            <li><span>{tr("Farm Size")}</span><b>{directoryRow.farm_size ? `${directoryRow.farm_size} ha` : "—"}</b></li>
+            <li><span>{tr("Association")}</span><b>{directoryRow.is_association_member ? (directoryRow.association_name || "Member") : "Not a member"}</b></li>
+            <li><span>{tr("Last Updated")}</span><b>{new Date(directoryRow.updated_at).toLocaleString("en-PH")}</b></li>
           </ul>
 
-          <div className="rsbsa-subhead" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>Plants Grown</span>
-            <button className="btn-ghost" style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={openCropsRequest}><i className="fa-solid fa-file-circle-plus"></i> Request Change</button>
-          </div>
+          <div className="rsbsa-subhead"><span>{tr("Plants Grown")}</span></div>
           <p style={{ padding: "0 4px", fontSize: ".85rem" }}>{(directoryRow.crops || []).join(", ") || "—"}</p>
-          {pendingCropRequest && (
-            <div className="profile-photo-note warn">
-              <i className="fa-solid fa-hourglass-half"></i> Crop change request pending ADMIN review: <StatusBadge status={pendingCropRequest.status} /> — proposed: {pendingCropRequest.new_crops.join(", ") || "none"}
-            </div>
-          )}
+          <p className="hint-text" style={{ padding: "0 4px" }}><i className="fa-solid fa-circle-info"></i> <span>{tr("To add a crop or correct one, go to")} <b>{tr("Crop Registration")}</b>.</span></p>
         </div>
       </div>
 
       {/* EDIT PROFILE (direct, no approval) */}
-      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit My Profile" icon="fa-id-card">
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title={tr("Edit My Profile")} icon="fa-id-card">
         {editForm && (
           <form className="modal-body" onSubmit={submitEdit}>
-            <label>Profile Photo <span className="req-note">(required for assistance qualification)</span>
+            <label>{tr("Profile Photo")} <span className="req-note">{tr("(required for assistance qualification)")}</span>
               <div className="photo-upload-row">
-                <img src={photoFile ? URL.createObjectURL(photoFile) : (directoryRow.photo_url || "")} alt="preview" className="photo-preview" />
+                <img src={photoFile ? URL.createObjectURL(photoFile) : (directoryRow.photo_url || "")} alt={tr("preview")} className="photo-preview" />
                 <input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files[0])} />
               </div>
             </label>
-            <label>Contact Number <input type="text" value={editForm.contact_number} onChange={(e) => setEditForm({ ...editForm, contact_number: e.target.value })} placeholder="09XX-XXX-XXXX" required /></label>
-            <label>Location (Purok) <input type="text" value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} required /></label>
-            <label>Farm Size (hectares) <input type="number" min="0.1" step="0.1" value={editForm.farm_size} onChange={(e) => setEditForm({ ...editForm, farm_size: e.target.value })} required /></label>
-            <label>Farmers Association Member? <select value={editForm.is_association_member ? "yes" : "no"} onChange={(e) => setEditForm({ ...editForm, is_association_member: e.target.value === "yes" })}><option value="no">No</option><option value="yes">Yes</option></select></label>
+            <label>{tr("Contact Number")} <PhoneInput value={editForm.contact_number} onChange={(v) => setEditForm({ ...editForm, contact_number: v })} placeholder={tr("09XXXXXXXXX")} required /></label>
+            <label>{tr("Location (Purok)")} <input type="text" value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} required /></label>
+            <label>{tr("Farm Size (hectares)")} <input type="number" min="0.1" step="0.1" value={editForm.farm_size} onChange={(e) => setEditForm({ ...editForm, farm_size: e.target.value })} required /></label>
+            <label>{tr("Farmers Association Member?")} <select value={editForm.is_association_member ? "yes" : "no"} onChange={(e) => setEditForm({ ...editForm, is_association_member: e.target.value === "yes", association_id: e.target.value === "yes" ? editForm.association_id : "" })}><option value="no">{tr("No")}</option><option value="yes">{tr("Yes")}</option></select></label>
+            {editForm.is_association_member && (
+              <label>{tr("Which association?")}
+                <select value={editForm.association_id} onChange={(e) => setEditForm({ ...editForm, association_id: e.target.value })} required>
+                  <option value="">{tr("Choose your association…")}</option>
+                  {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </label>
+            )}
             <div className="modal-actions">
-              <button type="button" className="btn-ghost" onClick={() => setEditOpen(false)}>Cancel</button>
-              <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Saving…" : <><i className="fa-solid fa-floppy-disk"></i> Save</>}</button>
+              <button type="button" className="btn-ghost" onClick={() => setEditOpen(false)}>{tr("Cancel")}</button>
+              <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Saving…" : <><i className="fa-solid fa-floppy-disk"></i> {tr("Save")}</>}</button>
             </div>
           </form>
         )}
       </Modal>
 
-      {/* CROP CHANGE REQUEST (gated — needs ADMIN approval) */}
-      <Modal open={cropsOpen} onClose={() => setCropsOpen(false)} title="Request Crop Change" icon="fa-file-circle-plus">
-        <form className="modal-body" onSubmit={submitCropsRequest}>
-          <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Changes to plants grown are important farm information — this will be reviewed by ADMIN before it takes effect.</p>
-          <label>Plants Grown (hold Ctrl/Cmd to select multiple)
-            <select multiple size={7} value={cropsForm} onChange={(e) => setCropsForm(Array.from(e.target.selectedOptions, (o) => o.value))}>
-              {CROP_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
-              <option value="Other">Other (specify below)</option>
-            </select>
-          </label>
-          {cropsForm.includes("Other") && (
-            <label>Specify Other Crop(s) <span className="req-note">(comma-separated if more than one)</span>
-              <input type="text" value={otherCropText} onChange={(e) => setOtherCropText(e.target.value)} placeholder="e.g. Dragon Fruit, Malunggay" />
-            </label>
-          )}
-          <div className="modal-actions"><button type="button" className="btn-ghost" onClick={() => setCropsOpen(false)}>Cancel</button><button type="submit" className="btn-primary" disabled={cropsSaving}>{cropsSaving ? "Submitting…" : <><i className="fa-solid fa-paper-plane"></i> Submit for Review</>}</button></div>
-        </form>
-      </Modal>
-
       {/* CHANGE PASSWORD (direct, no approval) */}
-      <Modal open={passOpen} onClose={() => setPassOpen(false)} title="Change Password" icon="fa-key">
+      <Modal open={passOpen} onClose={() => setPassOpen(false)} title={tr("Change Password")} icon="fa-key">
         <form className="modal-body" onSubmit={submitPassword}>
           {passError && <div className="hint-text" style={{ color: "var(--danger)", background: "var(--cream)", border: "1px solid var(--cream-2)", borderRadius: 8, padding: "10px 12px" }}><i className="fa-solid fa-triangle-exclamation"></i> {passError}</div>}
-          <label>New Password <input type="password" minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required /></label>
-          <label>Confirm New Password <input type="password" minLength={6} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required /></label>
+          <label>{tr("New Password")} <input type="password" minLength={6} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required /></label>
+          <label>{tr("Confirm New Password")} <input type="password" minLength={6} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required /></label>
             <div className="modal-actions">
-              <button type="button" className="btn-ghost" onClick={() => setPassOpen(false)}>Cancel</button>
+              <button type="button" className="btn-ghost" onClick={() => setPassOpen(false)}>{tr("Cancel")}</button>
               <button type="submit" className="btn-primary" disabled={passSaving}>
-                {passSaving ? "Saving…" : (<><i className="fa-solid fa-key"></i> Update Password</>)}
+                {passSaving ? "Saving…" : (<><i className="fa-solid fa-key"></i> {tr("Update Password")}</>)}
               </button>
             </div>
         </form>

@@ -5,13 +5,15 @@ import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
 import { runQualificationCheck, ASSISTANCE_UNITS } from "../../lib/businessRules";
+import { useMemberScope, inScope } from "../../lib/memberScope";
 
 export default function AssistanceDistribution() {
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [directory, setDirectory] = useState({});
   const [contextByFarmer, setContextByFarmer] = useState({});
-  const [filter, setFilter] = useState("Pending");
+  const scope = useMemberScope(); // only members of the association
+  const [filter, setFilter] = useState("All");
   const [reviewRow, setReviewRow] = useState(null);
   const [form, setForm] = useState({ note: "", quantity: "", unit: ASSISTANCE_UNITS[0] });
 
@@ -35,7 +37,9 @@ export default function AssistanceDistribution() {
   }
   useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(() => (filter === "All" ? rows : rows.filter((r) => r.status === filter)), [rows, filter]);
+  const members = useMemo(() => rows.filter((r) => inScope(scope, r.farmer_id)), [rows, scope]);
+  const filtered = useMemo(() => (filter === "All" ? members : members.filter((r) => r.status === filter)), [members, filter]);
+  const STATUS_TABS = [["All", ["Pending", "Under Review", "Incoming", "Released", "Denied"]], ["Released", ["Released"]], ["Incoming", ["Incoming"]], ["Pending", ["Pending", "Under Review"]], ["Denied", ["Denied"]]];
   const qual = reviewRow && directory[reviewRow.farmer_id] ? runQualificationCheck(reviewRow.assistance_type, directory[reviewRow.farmer_id], contextByFarmer[reviewRow.farmer_id] || {}) : null;
 
   function openReview(row) {
@@ -64,7 +68,14 @@ export default function AssistanceDistribution() {
           <option>Pending</option><option>Under Review</option><option>Incoming</option><option>Released</option><option>Denied</option><option>All</option>
         </select>
       </div>
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Review pending applications and recommend them to the ADMIN for final release. Final approval remains with the Municipal Agriculture Office.</p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 12px" }}>
+        {STATUS_TABS.map(([key, match]) => (
+          <button type="button" key={key} className={filter === key ? "btn-primary" : "btn-ghost"} style={{ padding: "5px 12px", fontSize: ".78rem" }} onClick={() => setFilter(key)}>
+            {key === "Pending" ? "Pending / Under Review" : key} ({members.filter((r) => match.includes(r.status)).length})
+          </button>
+        ))}
+      </div>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Only members of the association are listed. Review pending applications and recommend them to the ADMIN for final release. Final approval remains with the Municipal Agriculture Office.</p>
       <div className="table-panel">
         <table className="data-table">
           <thead><tr><th>Farmer</th><th>Type</th><th>Quantity</th><th>Source</th><th>Requested</th><th>Status</th><th></th></tr></thead>

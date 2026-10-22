@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./rsbsa-paper.css";
+import SignatureField from "./SignaturePad.jsx";
+import "./formErrors.css";
 import {
   SEG, SEX, CIVIL, RELIGION, EDUCATION, YES_NO, LIVELIHOOD, TENURE, FARM_TYPES, PARCEL_COUNT,
   applyDeps, isMarried, isFarmer, isNcr, transactionCode, slotCount,
@@ -361,7 +363,7 @@ export default function RsbsaPaper({ values: v, setValues, errors = {}, readOnly
             <div className="sgn">
               <div className="in"><input type="date" className={bad("signDate") ? "bad" : ""} value={v.signDate} onChange={(e) => patch({ signDate: e.target.value })} disabled={ro} /></div>
               <div className="in">{inp("printedName", "")}</div>
-              <div className="in">{inp("signature", "", { placeholder: ro ? "" : "Type name as signature" })}</div>
+              <div className="in"><SignatureField readOnly={ro} bad={bad("signature")} image={v.signImage} typed={v.signature} name={v.printedName} onChange={(img) => patch({ signImage: img, signature: "", signedAt: img ? new Date().toISOString() : "" })} /></div>
               <div className="lb">DATE</div><div className="lb">PRINTED NAME OF REGISTRANT</div><div className="lb">SIGNATURE / THUMBMARK</div></div>
             <div className="pd blk" style={{ background: "#e0e0e0", fontWeight: "bold", fontSize: 9 }}>VERIFIED TRUE AND CORRECT BY:</div>
             <div className="ver"><div><span>SIGNATURE ABOVE PRINTED NAME / DATE</span><b>Barangay Chairperson / ICC/IPs Leader/Elder (IPs)/ C/Mun Veterinarian (Livestock)/ Mill District Officer (Sugarcane)/ C/MARO (ARBs)</b></div><div><span>SIGNATURE ABOVE PRINTED NAME / DATE</span><b>City/Municipal Agri-Fishery Council (C/MAFC) Chairperson</b></div><div><span>SIGNATURE ABOVE PRINTED NAME / DATE</span><b>City/Municipal Agriculturist (C/MA)</b><br /><i>required</i></div><div><span>SIGNATURE ABOVE PRINTED NAME / DATE</span><b>Enumerator (if administered)</b><br /><i>required</i></div></div>

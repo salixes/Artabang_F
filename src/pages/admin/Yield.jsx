@@ -14,15 +14,15 @@ const REPORT_OPTIONS = [
   { value: "by_date", label: "Yield by Date" },
 ];
 
-function ReportTable({ rows, onVerify, onReject }) {
+function ReportTable({ rows, onVerify, onReject, assoc = {} }) {
   return (
     <table className="data-table">
-      <thead><tr><th>Farmer</th><th>Crop / Plant Name</th><th>Farm Area</th><th>Planting Date</th><th>Harvest Date</th><th>Yield Qty</th><th>Unit</th><th>Submitted</th><th>Status</th><th>Verified By</th><th></th></tr></thead>
+      <thead><tr><th>Farmer</th><th>Association</th><th>Crop / Plant Name</th><th>Farm Area</th><th>Planting Date</th><th>Harvest Date</th><th>Yield Qty</th><th>Unit</th><th>Submitted</th><th>Status</th><th>Verified By</th><th></th></tr></thead>
       <tbody>
-        {rows.length === 0 && <tr><td colSpan={11} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No records.</td></tr>}
+        {rows.length === 0 && <tr><td colSpan={12} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No records.</td></tr>}
         {rows.map((r) => (
           <tr key={r.id}>
-            <td>{r.farmer_name}</td><td>{r.crop_name}</td><td>{r.farm_area ? `${r.farm_area} ha` : "—"}</td>
+            <td>{r.farmer_name}</td><td>{assoc[r.farmer_id] || "—"}</td><td>{r.crop_name}</td><td>{r.farm_area ? `${r.farm_area} ha` : "—"}</td>
             <td>{r.planting_date || "—"}</td><td>{r.harvest_date}</td>
             <td>{Number(r.quantity).toLocaleString()}</td><td>{yieldUnitText(r)}</td>
             <td>{new Date(r.submitted_at).toLocaleDateString("en-PH")}</td>
@@ -43,7 +43,7 @@ function ReportTable({ rows, onVerify, onReject }) {
   );
 }
 
-function GroupedReport({ rows, groupKey, groupLabel, onVerify, onReject }) {
+function GroupedReport({ rows, groupKey, groupLabel, onVerify, onReject, assoc }) {
   const groups = useMemo(() => {
     const map = new Map();
     rows.forEach((r) => {
@@ -64,7 +64,7 @@ function GroupedReport({ rows, groupKey, groupLabel, onVerify, onReject }) {
               <h3 style={{ fontSize: ".9rem" }}>{groupLabel}: {key}</h3>
               <span className="hint-text" style={{ margin: 0 }}>{groupRows.length} record{groupRows.length === 1 ? "" : "s"} · {totalKg.toLocaleString()} kg total</span>
             </div>
-            <ReportTable rows={groupRows} onVerify={onVerify} onReject={onReject} />
+            <ReportTable rows={groupRows} onVerify={onVerify} onReject={onReject} assoc={assoc} />
           </div>
         );
       })}
@@ -76,11 +76,14 @@ export default function YieldReports() {
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [report, setReport] = useState("all");
+  const [assoc, setAssoc] = useState({}); // farmer id -> association name / "Not a member"
 
   async function load() {
     const { data, error } = await supabase.from("yield_report").select("*").order("harvest_date", { ascending: false });
     if (error) return showToast(error.message, "fa-triangle-exclamation");
     setRows(data || []);
+    const { data: dir } = await supabase.from("farmer_directory").select("id, is_association_member, association_name");
+    setAssoc(Object.fromEntries((dir || []).map((d) => [d.id, d.is_association_member ? (d.association_name || "Member") : "Not a member"])));
   }
   useEffect(() => { load(); }, []);
 
@@ -128,10 +131,10 @@ export default function YieldReports() {
         <div className="stat-card ring-progress"><div className="stat-num">{totalKg.toLocaleString()}</div><div className="stat-label">Total (kg-equivalent) in this report</div></div>
       </div>
 
-      {report === "by_crop" && <GroupedReport rows={rows} groupKey="crop_name" groupLabel="Crop" onVerify={onVerify} onReject={onReject} />}
-      {report === "by_farmer" && <GroupedReport rows={rows} groupKey="farmer_name" groupLabel="Farmer" onVerify={onVerify} onReject={onReject} />}
+      {report === "by_crop" && <GroupedReport rows={rows} groupKey="crop_name" groupLabel="Crop" onVerify={onVerify} onReject={onReject} assoc={assoc} />}
+      {report === "by_farmer" && <GroupedReport rows={rows} groupKey="farmer_name" groupLabel="Farmer" onVerify={onVerify} onReject={onReject} assoc={assoc} />}
       {["all", "verified", "pending", "by_date"].includes(report) && (
-        <div className="table-panel"><ReportTable rows={filteredRows} onVerify={onVerify} onReject={onReject} /></div>
+        <div className="table-panel"><ReportTable rows={filteredRows} onVerify={onVerify} onReject={onReject} assoc={assoc} /></div>
       )}
     </section>
   );

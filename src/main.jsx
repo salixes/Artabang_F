@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { ToastProvider } from "./context/ToastContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
+import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { hasSupabaseEnv } from "./lib/supabaseClient";
 import "./index.css";
 import "./form-borders.css";
@@ -33,7 +34,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <ThemeProvider>
           <ToastProvider>
             <AuthProvider>
-              <App />
+              <LanguageProvider>
+                <App />
+              </LanguageProvider>
             </AuthProvider>
           </ToastProvider>
         </ThemeProvider>

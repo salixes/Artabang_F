@@ -146,7 +146,7 @@ export function validate(v) {
   }
   need("signDate", "Date (Part 4)", t(v.signDate));
   need("printedName", "Printed name of registrant", t(v.printedName));
-  need("signature", "Signature / thumbmark", t(v.signature));
+  need("signature", "Signature of the registrant (click the signature box to sign)", t(v.signature));
 
   // one message per key
   const seen = new Set();

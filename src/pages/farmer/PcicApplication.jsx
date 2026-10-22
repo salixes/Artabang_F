@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import PcicPaper from "../../components/PcicPaper.jsx";
 import { prefillFromFarmer, validate, toRecords, valuesFromSaved, emptyValues } from "../../lib/pcicForm";
+import { tr } from "../../lib/i18n";
 
 /**
  * Register Crop — the screen IS the PCIC "Application for Crop Insurance"
@@ -17,15 +18,22 @@ export default function PcicApplication({ onCancel, onSaved }) {
   const [values, setValues] = useState(() => prefillFromFarmer(farmer));
   const [errList, setErrList] = useState([]);
   const [saving, setSaving] = useState(false);
-  const errors = Object.fromEntries(errList.map((e) => [e.key, true]));
+  // after the first try, a field stays red only until it is filled in
+  const errors = Object.fromEntries((errList.length ? validate(values) : []).map((e) => [e.key, true]));
 
   const showErrors = (list) => {
     setErrList(list);
-    window.scrollTo?.({ top: 0, behavior: "smooth" });
-    document.querySelector(".content")?.scrollTo?.({ top: 0, behavior: "smooth" });
+    // no message list: the fields that still need filling in turn red; jump to the first one
+    setTimeout(() => {
+      const el = document.querySelector(".pp .bad");
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const f = el.matches("input,select,textarea") ? el : el.querySelector("input,select,textarea");
+      f?.focus?.({ preventScroll: true });
+    }, 80);
   };
-  const cancel = () => { if (confirm("Close the form without saving?")) onCancel(); };
-  const clearForm = () => { if (confirm("Clear all entries in this form?")) { setValues(emptyValues()); setErrList([]); } };
+  const cancel = () => { if (confirm(tr("Close the form without saving?"))) onCancel(); };
+  const clearForm = () => { if (confirm(tr("Clear all entries in this form?"))) { setValues(emptyValues()); setErrList([]); } };
 
   async function save() {
     const list = validate(values);
@@ -46,38 +54,35 @@ export default function PcicApplication({ onCancel, onSaved }) {
       showErrors([{ key: "_save", msg }]);
       return showToast(msg, "fa-triangle-exclamation");
     }
-    const { error: cropErr } = await supabase.from("crop_registrations").insert(crops);
+    const { data: newCrops, error: cropErr } = await supabase.from("crop_registrations").insert(crops).select("id");
     setSaving(false);
     if (cropErr) {
       const msg = `Insurance application saved, but the crop registration failed: ${cropErr.message}`;
       showErrors([{ key: "_save", msg }]);
       return showToast(msg, "fa-triangle-exclamation");
     }
+    // make sure every admin is told (bell icon + Notifications page)
+    try { await Promise.all((newCrops || []).map((c) => supabase.rpc("notify_admin_crop", { p_crop: c.id, p_kind: "registered" }))); } catch (_) { /* the database trigger also notifies */ }
     logActivity(`Registered crop ${insurance.crop_name} (PCIC application)`, "crop");
-    showToast("Crop registered and PCIC insurance application filed.", "fa-shield-heart");
+    showToast(tr("Crop registered and sent to the admin for approval (Pending)."), "fa-shield-heart");
     onSaved();
   }
 
   return (
     <section className="pp">
       <div className="pp-bar">
-        <button className="pp-btn" onClick={cancel}>← Back</button>
-        <b>PCIC — Application for Crop Insurance</b>
-        <div className="pp-btns"><button className="pp-btn" onClick={() => window.print()}>Print</button></div>
+        <button className="pp-btn" onClick={cancel}>{tr("← Back")}</button>
+        <b>{tr("PCIC — Application for Crop Insurance")}</b>
+        <div className="pp-btns"><button className="pp-btn" onClick={() => window.print()}>{tr("Print")}</button></div>
       </div>
 
-      {errList.length > 0 && (
-        <div className="pp-errs"><b>Please complete the required information:</b>
-          <ul>{errList.map((e) => <li key={e.key}>{e.msg}</li>)}</ul>
-        </div>
-      )}
 
       <PcicPaper values={values} setValues={setValues} errors={errors} />
 
       <div className="pp-bar" style={{ position: "sticky", bottom: 0, background: "#f1f1f1", border: "1px solid #999", borderRadius: 4, padding: "8px 12px", justifyContent: "flex-end", zIndex: 5 }}>
         <div className="pp-btns">
-          <button className="pp-btn" type="button" onClick={cancel}>Cancel</button>
-          <button className="pp-btn" type="button" onClick={clearForm}>Clear Form</button>
+          <button className="pp-btn" type="button" onClick={cancel}>{tr("Cancel")}</button>
+          <button className="pp-btn" type="button" onClick={clearForm}>{tr("Clear Form")}</button>
           <button className="pp-btn pri" type="button" onClick={save} disabled={saving}>{saving ? "Saving…" : "Save Application"}</button>
         </div>
       </div>
@@ -90,8 +95,8 @@ export function PcicView({ saved, onBack }) {
   return (
     <section className="pp">
       <div className="pp-bar">
-        <button className="pp-btn" onClick={onBack}>← Back</button>
-        <div className="pp-btns"><button className="pp-btn pri" onClick={() => window.print()}>Print (1 long bond sheet)</button></div>
+        <button className="pp-btn" onClick={onBack}>{tr("← Back")}</button>
+        <div className="pp-btns"><button className="pp-btn pri" onClick={() => window.print()}>{tr("Print (1 long bond sheet)")}</button></div>
       </div>
       <PcicPaper values={valuesFromSaved(saved)} readOnly />
     </section>

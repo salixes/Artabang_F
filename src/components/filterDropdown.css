@@ -1,0 +1,13 @@
+/* Filter dropdowns (Assistance Management): Status, Type of assistance */
+.fd-row{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 14px;align-items:flex-start;}
+.fd{position:relative;display:inline-block;}
+.fd-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border:1.5px solid var(--sage);border-radius:999px;background:var(--white);color:var(--forest-deep);font:inherit;font-size:.84rem;cursor:pointer;transition:background .15s ease,border-color .15s ease;}
+.fd-btn:hover,.fd-btn.open{background:var(--sage-pale);border-color:var(--forest);}
+.fd-label{color:var(--ink-soft);font-weight:500;}
+.fd-btn b{font-weight:700;}
+.fd-caret{font-size:.7rem;transition:transform .15s ease;}
+.fd-btn.open .fd-caret{transform:rotate(180deg);}
+.fd-menu{position:absolute;top:calc(100% + 6px);left:0;min-width:100%;width:max-content;max-width:min(320px,86vw);background:var(--white);border:1px solid var(--sage-pale);border-radius:14px;box-shadow:var(--shadow-lift);padding:6px;z-index:70;animation:dropIn .15s ease both;}
+.fd-opt{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;text-align:left;padding:9px 12px;border:none;border-radius:10px;background:transparent;color:var(--forest-deep);font:inherit;font-size:.84rem;font-weight:600;cursor:pointer;}
+.fd-opt:hover{background:var(--sage-pale);}
+.fd-opt.on{background:var(--forest-deep);color:#fff;}

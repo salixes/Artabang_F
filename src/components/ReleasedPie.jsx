@@ -1,6 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext.jsx";
+import { tr } from "../lib/i18n";
+import { useNavigate } from "react-router-dom";
+import { StatusBadge } from "./Badges.jsx";
+import { useMemberScope, inScope } from "../lib/memberScope";
+import "./releasedWho.css";
 
 const SLICES = [
   { key: "Released", label: "Released", color: "#2F6B45", match: ["Released"] },
@@ -13,7 +18,7 @@ const pt = (deg) => { const a = ((deg - 90) * Math.PI) / 180; return [C + R * Ma
 
 // Pie chart of assistance records by status, headlined with the share already RELEASED.
 // statuses = one status string per assistance record.
-export default function ReleasedPie({ statuses = [], title = "Assistance already released" }) {
+export default function ReleasedPie({ statuses = [], title = "Assistance already released", onPick, active }) {
   const data = useMemo(() => {
     const counts = SLICES.map((s) => ({ ...s, count: statuses.filter((x) => s.match.includes(x)).length }));
     const total = counts.reduce((a, s) => a + s.count, 0);
@@ -36,7 +41,7 @@ export default function ReleasedPie({ statuses = [], title = "Assistance already
     <div className="rel-pie">
       <h4 className="rel-pie-title"><i className="fa-solid fa-chart-pie"></i> {title}</h4>
       {data.total === 0 ? (
-        <p className="hint-text" style={{ margin: 0 }}>No assistance records yet.</p>
+        <p className="hint-text" style={{ margin: 0 }}>{tr("No assistance records yet.")}</p>
       ) : (
         <div className="rel-pie-body">
           <svg viewBox="0 0 200 200" width="170" height="170" role="img" aria-label={`${pct}% of ${data.total} assistance records released`} className="rel-pie-svg">
@@ -48,11 +53,11 @@ export default function ReleasedPie({ statuses = [], title = "Assistance already
             })}
           </svg>
           <div className="rel-pie-side">
-            <div className="rel-pie-big"><b>{pct}%</b><span>released</span></div>
-            <div className="rel-pie-sub">{released.count} of {data.total} record{data.total === 1 ? "" : "s"}</div>
+            <div className="rel-pie-big"><b>{pct}%</b><span>{tr("released")}</span></div>
+            <div className="rel-pie-sub">{released.count} {tr("of")} {data.total} {tr("record")}{data.total === 1 ? "" : "s"}</div>
             <ul className="rel-pie-legend">
               {data.slices.map((s) => (
-                <li key={s.key}><i style={{ background: s.color }}></i><span>{s.label}</span><b>{s.count}</b><em>{Math.round(s.pct)}%</em></li>
+                <li key={s.key} className={onPick ? "pick" : undefined} onClick={onPick ? () => onPick(s.key) : undefined} style={active === s.key ? { fontWeight: 700 } : undefined}><i style={{ background: s.color }}></i><span>{s.label}</span><b>{s.count}</b><em>{Math.round(s.pct)}%</em></li>
               ))}
             </ul>
           </div>
@@ -83,7 +88,7 @@ function ReleasedBreakdown({ records, directory, isFarmer }) {
 
   const mini = (rows, head) => (
     <table className="rel-mini">
-      <thead><tr><th>{head}</th><th>Released</th>{!isFarmer && <th>Farmers</th>}</tr></thead>
+      <thead><tr><th>{head}</th><th>{tr("Released")}</th>{!isFarmer && <th>{tr("Farmers")}</th>}</tr></thead>
       <tbody>{rows.map((g) => <tr key={g.name}><td>{g.name}</td><td>{g.records}</td>{!isFarmer && <td>{g.farmers.size}</td>}</tr>)}</tbody>
     </table>
   );
@@ -95,15 +100,15 @@ function ReleasedBreakdown({ records, directory, isFarmer }) {
         <span>{isFarmer
           ? `assistance record${d.released === 1 ? "" : "s"} released to you`
           : `farmer${d.farmers === 1 ? "" : "s"} already received assistance`}</span>
-        {!isFarmer && <em>{d.released} released record{d.released === 1 ? "" : "s"} in total</em>}
+        {!isFarmer && <em>{d.released} {tr("released record")}{d.released === 1 ? "" : "s"} {tr("in total")}</em>}
       </div>
       {d.released === 0 ? (
-        <p className="hint-text" style={{ margin: 0 }}>No assistance has been released yet.</p>
+        <p className="hint-text" style={{ margin: 0 }}>{tr("No assistance has been released yet.")}</p>
       ) : (
         <>
-          <h5><i className="fa-solid fa-hand-holding-dollar"></i> What assistance</h5>
+          <h5><i className="fa-solid fa-hand-holding-dollar"></i> {tr("What assistance")}</h5>
           {mini(d.byType, "Assistance")}
-          <h5><i className="fa-solid fa-location-dot"></i> Where</h5>
+          <h5><i className="fa-solid fa-location-dot"></i> {tr("Where")}</h5>
           {mini(d.byPlace, "Barangay, Municipality")}
         </>
       )}
@@ -111,34 +116,104 @@ function ReleasedBreakdown({ records, directory, isFarmer }) {
   );
 }
 
-// Dashboard card: the pie (share released) + how many farmers received assistance,
-// what assistance and where. Admin / president: everyone's records. Farmer: their own.
-export function ReleasedPieCard({ title }) {
+const nameOf = (d) => [d?.surname, d?.first_name, d?.middle_name, d?.extension_name].filter(Boolean).join(", ") || d?.full_name || "—";
+const fmt = (d) => (d ? new Date(d).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—");
+
+// "Who are Released / Incoming / Pending-Under Review / Denied" (a farmer only sees his/her own released ones)
+function WhoList({ records, directory, isFarmer, tab, setTab, onOpen }) {
+  const active = SLICES.find((s) => s.key === tab) || SLICES[0];
+  const list = records
+    .filter((r) => active.match.includes(r.status))
+    .sort((a, b) => new Date(b.resolved_at || b.requested_at) - new Date(a.resolved_at || a.requested_at));
+  const count = (s) => records.filter((r) => s.match.includes(r.status)).length;
+  return (
+    <div className="rel-who-list">
+      <h5><i className="fa-solid fa-users"></i> {isFarmer ? tr("My released assistance") : `${tr("Who are")} ${active.label}`}</h5>
+      {!isFarmer && (
+        <div className="rel-who-tabs" role="tablist">
+          {SLICES.map((s) => (
+            <button type="button" key={s.key} role="tab" aria-selected={active.key === s.key} className={`rel-who-tab ${active.key === s.key ? "on" : ""}`} onClick={() => setTab(s.key)}>
+              <i className="dot" style={{ background: s.color }}></i>{s.label} <b>{count(s)}</b>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="rel-who-scroll">
+        {list.length === 0 ? (
+          <p className="rel-who-empty">{isFarmer ? tr("No assistance has been released to you yet.") : `${tr("Nobody is in this status yet.")}`}</p>
+        ) : (
+          <table>
+            <thead><tr>{!isFarmer && <th>{tr("Farmer")}</th>}<th>{tr("Assistance")}</th><th>{tr("Program")}</th><th>{active.key === "Released" ? tr("Released on") : tr("Requested on")}</th>{active.key === "Pending" && <th>{tr("Status")}</th>}</tr></thead>
+            <tbody>
+              {list.map((r) => (
+                <tr key={r.id} onClick={onOpen}>
+                  {!isFarmer && <td>{nameOf(directory[r.farmer_id])}</td>}
+                  <td>{tr(r.assistance_type)}</td><td>{r.program_title || "—"}</td>
+                  <td>{fmt(r.status === "Released" ? (r.distribution_date || r.resolved_at || r.requested_at) : r.requested_at)}</td>
+                  {active.key === "Pending" && <td><StatusBadge status={r.status} /></td>}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Dashboard card. Admin: everyone. President: only members of the association.
+// Farmer: only his/her own released assistance.
+export function ReleasedPieCard({ title = "Assistance already released" }) {
   const { farmer, role } = useAuth();
+  const navigate = useNavigate();
   const isFarmer = role === "farmer";
-  const [records, setRecords] = useState(null);
+  const scope = useMemberScope();
+  const [all, setAll] = useState(null);
   const [directory, setDirectory] = useState({});
+  const [tab, setTab] = useState("Released");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("assistance_records").select("farmer_id, assistance_type, status");
-      setRecords(data || []);
+      const { data } = await supabase.from("assistance_records")
+        .select("id, farmer_id, assistance_type, program_title, status, requested_at, resolved_at, distribution_date")
+        .order("requested_at", { ascending: false });
+      setAll(data || []);
       if (isFarmer) {
         if (farmer) setDirectory({ [farmer.id]: farmer });
       } else {
-        const { data: dir } = await supabase.from("farmer_directory").select("id, barangay, city_municipality");
+        const { data: dir } = await supabase.from("farmer_directory")
+          .select("id, full_name, surname, first_name, middle_name, extension_name, barangay, city_municipality");
         setDirectory(Object.fromEntries((dir || []).map((x) => [x.id, x])));
       }
     })();
   }, [isFarmer, farmer?.id]);
 
-  if (!records) return null;
+  const records = useMemo(() => {
+    if (!all) return null;
+    if (isFarmer) return all.filter((r) => r.status === "Released" && (!farmer || r.farmer_id === farmer.id));
+    return all.filter((r) => inScope(scope, r.farmer_id));
+  }, [all, scope, isFarmer, farmer?.id]);
+
+  if (!records || scope === undefined) return null;
+  const open = () => navigate(`/${role}/assistance`);
+
+  if (isFarmer) {
+    return (
+      <div className="panel rel-pie-card">
+        <h4 className="rel-pie-title"><i className="fa-solid fa-hand-holding-dollar"></i> {tr(title)}</h4>
+        <ReleasedBreakdown records={records} directory={directory} isFarmer />
+        <WhoList records={records} directory={directory} isFarmer tab="Released" setTab={() => {}} onOpen={open} />
+      </div>
+    );
+  }
   return (
     <div className="panel rel-pie-card">
       <div className="rel-card-grid">
-        <ReleasedPie statuses={records.map((r) => r.status)} title={title} />
-        <ReleasedBreakdown records={records} directory={directory} isFarmer={isFarmer} />
+        <ReleasedPie statuses={records.map((r) => r.status)} title={title} onPick={setTab} active={tab} />
+        <ReleasedBreakdown records={records} directory={directory} isFarmer={false} />
       </div>
+      {role === "president" && <p className="hint-text" style={{ margin: "10px 0 0" }}><i className="fa-solid fa-circle-info"></i> {tr("Only members of the association are counted here.")}</p>}
+      <WhoList records={records} directory={directory} isFarmer={false} tab={tab} setTab={setTab} onOpen={open} />
     </div>
   );
 }

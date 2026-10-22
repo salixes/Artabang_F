@@ -4,6 +4,7 @@ import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import Avatar from "../../components/Avatar.jsx";
+import PhoneInput, { phoneError, phoneDigits } from "../../components/PhoneInput.jsx";
 
 const MAX_PHOTO = 3 * 1024 * 1024;
 const migrationHint = (msg) => (/avatar_url|position|address|birth_date/.test(msg) ? `${msg} — run supabase/migrations/profile_details.sql in the Supabase SQL editor first.` : msg);
@@ -27,9 +28,11 @@ export default function StaffProfile({ roleLabel }) {
 
   async function saveDetails(e) {
     e.preventDefault();
+    const phoneMsg = phoneError(form.contact_number);
+    if (phoneMsg) return showToast(phoneMsg, "fa-triangle-exclamation");
     setSaving(true);
     const { error } = await supabase.from("profiles").update({
-      full_name: form.full_name.trim(), contact_number: form.contact_number.trim() || null,
+      full_name: form.full_name.trim(), contact_number: phoneDigits(form.contact_number) || null,
       position: form.position.trim() || null, birth_date: form.birth_date || null, address: form.address.trim() || null,
       updated_at: new Date().toISOString(),
     }).eq("id", profile.id);
@@ -112,7 +115,7 @@ export default function StaffProfile({ roleLabel }) {
           <div className="modal-body">
             <label>Full Name <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></label>
             <label>Position / Designation <input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder={roleLabel === "ADMIN" ? "e.g. Municipal Agriculturist" : "e.g. Association President"} /></label>
-            <label>Contact Number <input value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} placeholder="09XX-XXX-XXXX" /></label>
+            <label>Contact Number <PhoneInput value={form.contact_number} onChange={(v) => setForm({ ...form, contact_number: v })} /></label>
             <label>Birth Date <input type="date" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} /></label>
             <label>Address <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Barangay, Municipality, Province" /></label>
             <div className="profile-center-actions">

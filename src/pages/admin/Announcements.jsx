@@ -11,8 +11,8 @@ import {
   kindIcon, kindOfAnnouncement, missingRequired, cleanDetails, fmtDate,
 } from "../../lib/assistancePrograms";
 
-const emptyForm = { kind: "General", title: "", body: "", assistance_type: ASSISTANCE_KINDS[0].label, deadline: "", audience: "all", target_crops: [], details: {} };
-const migrationHint = (msg) => (/\bkind\b|details/.test(msg) && /column|schema cache/.test(msg) ? `${msg} — run supabase/migrations/announcement_kinds.sql in the Supabase SQL editor first.` : msg);
+const emptyForm = { kind: "General", title: "", body: "", assistance_type: ASSISTANCE_KINDS[0].label, deadline: "", audience: "all", target_crops: [], details: {}, association_id: "" };
+const migrationHint = (msg) => (/\bkind\b|details|association_id/.test(msg) && /column|schema cache/.test(msg) ? `${msg} — run supabase/migrations/announcement_kinds.sql in the Supabase SQL editor first.` : msg);
 
 // One page for EVERY kind of announcement. The admin picks the kind when posting;
 // "Assistance" announcements also appear in each matching farmer's Eligibility page.
@@ -25,6 +25,7 @@ export default function AdminAnnouncements() {
   const kinds = ANNOUNCEMENT_KINDS.filter((k) => isAdmin || k.key !== "Assistance");
 
   const [general, setGeneral] = useState([]);
+  const [associations, setAssociations] = useState([]); // LIFA, Lindasan
   const [assist, setAssist] = useState([]);
   const [apps, setApps] = useState({}); // assistance announcement id -> { total, pending }
   const [filter, setFilter] = useState("All");
@@ -35,11 +36,13 @@ export default function AdminAnnouncements() {
   const [error, setError] = useState("");
 
   async function load() {
-    const [{ data: g }, { data: a }, { data: recs }] = await Promise.all([
+    const [{ data: g }, { data: a }, { data: recs }, { data: assoc }] = await Promise.all([
       supabase.from("announcements").select("*").order("created_at", { ascending: false }),
       supabase.from("assistance_announcements").select("*").order("created_at", { ascending: false }),
       supabase.from("assistance_records").select("announcement_id, status").not("announcement_id", "is", null),
+      supabase.from("associations").select("id, name").order("name"),
     ]);
+    setAssociations(assoc || []);
     setGeneral(g || []);
     setAssist(a || []);
     const tally = {};
@@ -108,6 +111,7 @@ export default function AdminAnnouncements() {
     setSaving(true);
     const { error: err } = await supabase.from("announcements").insert({
       title: form.title.trim(), body: form.body.trim(), kind: form.kind, icon: kindIcon(form.kind),
+      association_id: form.association_id || null,
       posted_by: profile.id, posted_by_role: profile.role,
     });
     setSaving(false);
@@ -158,7 +162,7 @@ export default function AdminAnnouncements() {
             <legend>Kind of announcement</legend>
             <div className="kind-tabs" role="group" aria-label="Kind of announcement" style={{ marginBottom: 0 }}>
               {kinds.map((k) => (
-                <button type="button" key={k.key} className={`aa-chip ${form.kind === k.key ? "on" : ""}`} onClick={() => setForm({ ...emptyForm, kind: k.key, title: form.title, body: form.body })}>
+                <button type="button" key={k.key} className={`aa-chip ${form.kind === k.key ? "on" : ""}`} onClick={() => setForm({ ...emptyForm, kind: k.key, title: form.title, body: form.body, association_id: form.association_id })}>
                   <i className={`fa-solid ${k.icon}`}></i> {k.key}
                 </button>
               ))}
@@ -185,6 +189,18 @@ export default function AdminAnnouncements() {
               <textarea rows={isAssistance ? 4 : 5} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} required
                 placeholder={isAssistance ? "Who qualifies and how to claim it." : ""} /></label>
           </fieldset>
+
+          {!isAssistance && (
+            <fieldset className="rsbsa-fieldset">
+              <legend>Send to</legend>
+              <label className="aa-field" style={{ marginBottom: 0 }}>Which association?
+                <select value={form.association_id} onChange={(e) => setForm({ ...form, association_id: e.target.value })}>
+                  <option value="">All associations ({associations.map((a) => a.name).join(" and ") || "everyone"})</option>
+                  {associations.map((a) => <option key={a.id} value={a.id}>{a.name} members only</option>)}
+                </select>
+              </label>
+            </fieldset>
+          )}
 
           {isAssistance && (
             <fieldset className="rsbsa-fieldset">
@@ -252,7 +268,7 @@ export default function AdminAnnouncements() {
         ) : (
           <div className="panel" key={`g-${a.id}`}>
             <div className="panel-head"><h3><i className={`fa-solid ${a.icon || kindIcon(a._kind)}`}></i> {a.title}</h3><button className="btn-ghost" onClick={() => removeGeneral(a.id)} aria-label="Delete"><i className="fa-solid fa-trash"></i></button></div>
-            <div className="aa-meta"><span className="aa-badge soft">{a._kind}</span></div>
+            <div className="aa-meta"><span className="aa-badge soft">{a._kind}</span><span className="aa-badge soft"><i className="fa-solid fa-bullseye"></i> {a.association_id ? `${associations.find((x) => x.id === a.association_id)?.name || "One association"} members` : "All associations"}</span></div>
             <p style={{ padding: "0 4px 8px", fontSize: ".85rem", color: "var(--ink-soft)", whiteSpace: "pre-wrap" }}>{a.body}</p>
             <small style={{ padding: "0 4px", color: "var(--ink-soft)" }}>{new Date(a.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</small>
           </div>

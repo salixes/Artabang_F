@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { supabase } from "../lib/supabaseClient";
+import { tr } from "../lib/i18n";
 
 export const NAV = {
   farmer: [
@@ -9,10 +11,10 @@ export const NAV = {
       items: [
         { to: "/farmer/notifications", label: "Notifications" },
         { to: "/farmer/announcements", label: "Announcements" },
-        { to: "/farmer/activity", label: "Activity and History" },
       ],
     },
     { to: "/farmer/profile", label: "My Profile", icon: "fa-id-card" },
+    { to: "/farmer/rsbsa", label: "RSBSA Enrollment", icon: "fa-file-signature" },
     { to: "/farmer/crops", label: "Crop Registration", icon: "fa-tractor" },
     { to: "/farmer/yield", label: "My Yield Records", icon: "fa-wheat-awn" },
     {
@@ -36,6 +38,7 @@ export const NAV = {
       ],
     },
     { to: "/admin/farmers", label: "Farmer Profiling", icon: "fa-people-group" },
+    { to: "/admin/rsbsa-validation", label: "RSBSA Validation", icon: "fa-file-circle-check" },
     { to: "/admin/assistance", label: "Assistance Management", icon: "fa-hand-holding-dollar" },
     {
       group: "Reports", icon: "fa-chart-pie",
@@ -82,26 +85,43 @@ export default function Sidebar({ role, collapsed, onToggleCollapse, mobileOpen,
   });
   const [openGroups, setOpenGroups] = useState(initialOpen);
 
+  // admin: how many crop registrations / change requests are waiting for approval
+  const [pendingCrops, setPendingCrops] = useState(0);
+  const [pendingRsbsa, setPendingRsbsa] = useState(0);
+  useEffect(() => {
+    if (role !== "admin") return undefined;
+    let live = true;
+    const count = async () => {
+      const { count: n } = await supabase.from("crop_registrations").select("id", { count: "exact", head: true }).eq("status", "Pending");
+      if (live) setPendingCrops(n || 0);
+      const { count: r } = await supabase.from("rsbsa_submissions").select("id", { count: "exact", head: true }).eq("status", "Pending");
+      if (live) setPendingRsbsa(r || 0);
+    };
+    count();
+    const timer = setInterval(count, 30000);
+    return () => { live = false; clearInterval(timer); };
+  }, [role, location.pathname]);
+
   return (
     <>
       <div className={`mobile-overlay ${mobileOpen ? "show" : ""}`} onClick={onCloseMobile}></div>
       <aside className={`sidebar ${collapsed ? "collapsed" : ""} ${mobileOpen ? "mobile-open" : ""}`}>
         <div className="sidebar-brand">
           <div className="brand-mark">
-            <img src="/agritabang-logo.png" alt="AgriTabang" width="40" height="40" style={{ objectFit: "contain" }} />
+            <img src="/agritabang-logo.png" alt={tr("AgriTabang")} width="40" height="40" style={{ objectFit: "contain" }} />
           </div>
           <div className="brand-text">
-            <span className="brand-name">Agri<em>Tabang</em></span>
-            <span className="brand-tag">Farmer Profiling &amp; Assistance Management</span>
+            <span className="brand-name">{tr("Agri")}<em>{tr("Tabang")}</em></span>
+            <span className="brand-tag">{tr("Farmer Profiling & Assistance Management")}</span>
           </div>
-          <button className="collapse-btn" onClick={onToggleCollapse} aria-label="Collapse sidebar">
+          <button className="collapse-btn" onClick={onToggleCollapse} aria-label={tr("Collapse sidebar")}>
             <i className="fa-solid fa-angles-left"></i>
           </button>
         </div>
 
         <div className="session-badge">
           <i className="fa-solid fa-shield-halved"></i>
-          <div><span>{ROLE_LABEL[role]}</span><small>Supabase session active</small></div>
+          <div><span>{tr(ROLE_LABEL[role])}</span><small>{tr("Supabase session active")}</small></div>
         </div>
 
         <nav className="side-nav">
@@ -113,25 +133,27 @@ export default function Sidebar({ role, collapsed, onToggleCollapse, mobileOpen,
                   className="nav-link nav-parent-label"
                   onClick={(e) => { e.preventDefault(); setOpenGroups((g) => ({ ...g, [item.group]: !g[item.group] })); }}
                 >
-                  <i className={`fa-solid ${item.icon}`}></i><span>{item.group}</span>
+                  <i className={`fa-solid ${item.icon}`}></i><span>{tr(item.group)}</span>
                   <i className="fa-solid fa-chevron-down nav-caret"></i>
                 </a>
                 <div className={`nav-submenu ${openGroups[item.group] ? "open" : ""}`}>
                   {item.items.map((sub) => (
                     <NavLink key={sub.to} to={sub.to} className={({ isActive }) => `nav-link nav-sublink ${isActive ? "active" : ""}`} onClick={onCloseMobile}>
-                      <span>{sub.label}</span>
+                      <span>{tr(sub.label)}</span>
                     </NavLink>
                   ))}
                 </div>
               </div>
             ) : (
               <NavLink key={item.to} to={item.to} end={item.end} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`} onClick={onCloseMobile}>
-                <i className={`fa-solid ${item.icon}`}></i><span>{item.label}</span>
+                <i className={`fa-solid ${item.icon}`}></i><span>{tr(item.label)}</span>
+                {role === "admin" && item.to === "/admin/crops" && pendingCrops > 0 && <b className="nav-count" title={`${pendingCrops} waiting for approval`}>{pendingCrops}</b>}
+                {role === "admin" && item.to === "/admin/rsbsa-validation" && pendingRsbsa > 0 && <b className="nav-count" title={`${pendingRsbsa} forms waiting for validation`}>{pendingRsbsa}</b>}
               </NavLink>
             )
           )}
           <a href="#" className="nav-link nav-logout" onClick={(e) => { e.preventDefault(); onLogout(); }}>
-            <i className="fa-solid fa-right-from-bracket"></i><span>Logout</span>
+            <i className="fa-solid fa-right-from-bracket"></i><span>{tr("Logout")}</span>
           </a>
         </nav>
 
@@ -139,7 +161,7 @@ export default function Sidebar({ role, collapsed, onToggleCollapse, mobileOpen,
           <div className="ring-mini" aria-hidden="true">
             <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,.15)" strokeWidth="3" /><circle cx="20" cy="20" r="16" fill="none" stroke="#C89B3C" strokeWidth="3" strokeDasharray="100.5" strokeDashoffset="30" strokeLinecap="round" /></svg>
           </div>
-          <p>Barangay Lindaban<br /><span>Manolo Fortich, Bukidnon</span></p>
+          <p>{tr("Barangay Lindaban")}<br /><span>{tr("Manolo Fortich, Bukidnon")}</span></p>
         </div>
       </aside>
     </>

@@ -999,3 +999,16 @@ body.dark .al-badge.act{background:#32284A;color:#C9B5EE;}
 .al-dev small{display:block;color:var(--ink-soft);font-size:.7rem;}
 .al-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2F9E5B;margin-right:6px;box-shadow:0 0 0 3px rgba(47,158,91,.2);}
 .al-admin-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-body);font-size:.68rem;font-weight:700;background:var(--gold);color:#fff;padding:3px 10px;border-radius:999px;vertical-align:middle;margin-left:8px;}
+
+.nav-count{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#C89B3C;color:#fff;font-size:.68rem;font-weight:700;display:inline-grid;place-items:center;animation:navpulse 2s ease-in-out infinite}
+.sidebar.collapsed .nav-count{position:absolute;top:4px;right:6px;margin:0}
+@keyframes navpulse{0%,100%{box-shadow:0 0 0 0 rgba(200,155,60,.5)}50%{box-shadow:0 0 0 5px rgba(200,155,60,0)}}
+
+/* language menu inside the profile (avatar) menu */
+.avatar-caret{margin-left:auto;font-size:.65rem;opacity:.7}
+.avatar-menu .avatar-lang-toggle{display:flex;align-items:center;gap:8px}
+.lang-list{display:flex;flex-direction:column;gap:2px;margin:2px 8px 6px 26px;padding:4px;border-radius:10px;background:var(--sage-pale);animation:langdrop .16s ease}
+.lang-list button{display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:transparent;color:var(--ink);font:inherit;font-size:.82rem;padding:7px 10px;border-radius:8px;cursor:pointer;text-align:left}
+.lang-list button:hover{background:rgba(31,107,62,.14)}
+.lang-list button.on{background:var(--forest);color:#fff;font-weight:600}
+@keyframes langdrop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}

@@ -1,4 +1,5 @@
 import React from "react";
+import { tr } from "../lib/i18n";
 
 const STATUS_CLASS = {
   Verified: "status-resolved",
@@ -21,17 +22,17 @@ const STATUS_CLASS = {
 
 export function StatusBadge({ status }) {
   const cls = STATUS_CLASS[status] || "status-pending";
-  return <span className={`status-badge ${cls}`}>{status}</span>;
+  return <span className={`status-badge ${cls}`}>{tr(status)}</span>;
 }
 
 export function SourceBadge({ source }) {
-  return <span className={`source-badge ${source === "MAO" ? "source-mao" : "source-other"}`}>{source}</span>;
+  return <span className={`source-badge ${source === "MAO" ? "source-mao" : "source-other"}`}>{tr(source)}</span>;
 }
 
 export function InsuredBadge({ insured }) {
   return (
     <span className={`status-badge ${insured ? "status-resolved" : "status-progress"}`}>
-      <i className={`fa-solid ${insured ? "fa-shield-heart" : "fa-shield-halved"}`}></i> {insured ? "Insured" : "Not Insured"}
+      <i className={`fa-solid ${insured ? "fa-shield-heart" : "fa-shield-halved"}`}></i> {insured ? tr("Insured") : tr("Not Insured")}
     </span>
   );
 }

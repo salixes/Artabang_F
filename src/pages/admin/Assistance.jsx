@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { logActivity } from "../../lib/activity";
@@ -6,11 +6,43 @@ import { useToast } from "../../context/ToastContext.jsx";
 import Modal from "../../components/Modal.jsx";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
 import ProgramDetails, { DynamicFields } from "../../components/ProgramDetails.jsx";
+import "../../components/filterDropdown.css";
 import { runQualificationCheck, ASSISTANCE_SOURCES, ASSISTANCE_REQUIREMENTS, ASSISTANCE_TYPES } from "../../lib/businessRules";
 import { RELEASE_FIELDS, releaseSummary, defaultsFromProgram, missingRequired, cleanDetails } from "../../lib/assistancePrograms";
 
 const KINDS = [...ASSISTANCE_TYPES, "Other Support Program"];
 const OPEN = new Set(["Pending", "Under Review"]);
+// "Status ▾" / "Type of assistance ▾": a button that opens the whole list of choices (with counts)
+function FilterDropdown({ label, value, options, onChange, showZero = false }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const esc = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
+  }, []);
+  const current = options.find((o) => o.key === value) || options[0];
+  const badge = (o) => (o.count || showZero ? <span className="kt-count">{o.count || 0}</span> : null);
+  return (
+    <div className="fd" ref={ref}>
+      <button type="button" className={`fd-btn ${open ? "open" : ""}`} onClick={() => setOpen((v) => !v)} aria-haspopup="listbox" aria-expanded={open}>
+        <span className="fd-label">{label}:</span> <b>{current.label}</b> {badge(current)} <i className="fa-solid fa-chevron-down fd-caret"></i>
+      </button>
+      {open && (
+        <div className="fd-menu" role="listbox" aria-label={label}>
+          {options.map((o) => (
+            <button type="button" role="option" aria-selected={o.key === value} key={o.key} className={`fd-opt ${o.key === value ? "on" : ""}`} onClick={() => { onChange(o.key); setOpen(false); }}>
+              <span>{o.label}</span>{badge(o)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const EXTRA_REQUIREMENT = { "Other Support Program": "Requirements are set in the announcement for this program." };
 
 // Assistance Management = processing the assistance only. Programs are posted from
@@ -25,8 +57,8 @@ export default function AdminAssistance() {
   const programFilter = params.get("announcement") || "all"; // "all" | "direct" | <announcement id>
   const [programs, setPrograms] = useState([]);
   const [kind, setKind] = useState("All");
-  // arriving from an announcement's "Manage in Assistance" shows ALL of its applications, not just Pending
-  const [filter, setFilter] = useState(params.get("announcement") ? "All" : "Pending");
+  // every application stays listed as a record (Released and Denied too) — "All" is the default
+  const [filter, setFilter] = useState("All");
   const [reviewRow, setReviewRow] = useState(null);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -67,6 +99,15 @@ export default function AdminAssistance() {
     return t;
   }, [rows, programFilter]);
 
+  // one line per posted assistance program (shows even before anyone applied)
+  const programStats = useMemo(() => programs.map((p) => {
+    const mine = rows.filter((r) => r.announcement_id === p.id);
+    const n = (...st) => mine.filter((r) => st.includes(r.status)).length;
+    return { p, total: mine.length, review: n("Pending", "Under Review"), incoming: n("Incoming"), released: n("Released"), denied: n("Denied") };
+  }), [programs, rows]);
+  const STATUS_CHIPS = [["All", ["Pending", "Under Review", "Incoming", "Released", "Denied"]], ["Pending", ["Pending"]], ["Under Review", ["Under Review"]], ["Incoming", ["Incoming"]], ["Released", ["Released"]], ["Denied", ["Denied"]]];
+  const chipCount = (match) => rows.filter((r) => (kind === "All" || r.assistance_type === kind) && inProgram(r) && match.includes(r.status)).length;
+
   const setProgramFilter = (v) => { const n = new URLSearchParams(params); if (v === "all") n.delete("announcement"); else n.set("announcement", v); setParams(n, { replace: true }); };
 
   function openReview(row) {
@@ -74,7 +115,7 @@ export default function AdminAssistance() {
     const legacy = row.quantity != null ? (row.unit === "PHP" ? { amount: row.quantity } : { quantity: row.quantity, unit: row.unit }) : {};
     setReviewRow(row);
     setForm({
-      value_description: row.value_description || "", source: row.source || "MAO",
+      value_description: row.value_description || "", source: (!row.resolved_at && prog?.details?.source) || row.source || "MAO", // a new application takes the source the program announced
       expected_date: row.expected_date || "", distribution_date: row.distribution_date || "",
       d: { ...defaultsFromProgram(row.assistance_type, prog?.details), ...legacy, ...(row.details || {}) },
     });
@@ -108,6 +149,7 @@ export default function AdminAssistance() {
     await supabase.from("notifications").insert({
       recipient_id: reviewRow.farmer_id, icon: status === "Released" ? "fa-circle-check" : status === "Denied" ? "fa-circle-xmark" : "fa-hourglass-half",
       message: `Your <b>${reviewRow.program_title || type}</b> application was marked <b>${status}</b>${summary !== "—" ? ` (${summary})` : ""}.`,
+      category: "assistance_result",
     });
     logActivity(`Marked ${reviewRow.program_title || type} of ${directory[reviewRow.farmer_id]?.full_name || "a farmer"} as ${status}`, "assistance");
     showToast(`Application ${status.toLowerCase()}.`, "fa-hand-holding-dollar");
@@ -129,19 +171,41 @@ export default function AdminAssistance() {
             <option value="direct">Direct requests (no announcement)</option>
             {programs.map((p) => <option key={p.id} value={p.id}>{p.title} ({p.assistance_type})</option>)}
           </select>
-          <select className="filter-select" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Status">
-            <option>Pending</option><option>Under Review</option><option>Incoming</option><option>Released</option><option>Denied</option><option>All</option>
-          </select>
         </div>
       </div>
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Assistance is posted from <b>Announcements</b> (kind: Assistance) and shows directly in each farmer's Eligibility page. Here you review and release it — each kind of assistance records what is specific to it.</p>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Assistance is posted from <b>Announcements</b> (kind: Assistance) and shows directly in each farmer's Eligibility page. Here you review and release it — each kind of assistance records what is specific to it. <b>Every application stays here as a record</b>: open any of them again, even after it was released or denied, to view it or change its status and details.</p>
 
-      <div className="kind-tabs" role="group" aria-label="Kind of assistance">
-        {["All", ...KINDS].map((k) => (
-          <button type="button" key={k} className={`aa-chip ${kind === k ? "on" : ""}`} onClick={() => setKind(k)}>
-            {k === "All" ? "All kinds" : k}{waiting[k] ? <> <span className="kt-count">{waiting[k]}</span></> : null}
-          </button>
-        ))}
+      <div className="panel" style={{ marginBottom: 14 }}>
+        <div className="panel-head"><h3><i className="fa-solid fa-bullhorn"></i> Posted assistance programs</h3><span className="hint-text" style={{ margin: 0 }}>{programs.length} posted</span></div>
+        {programs.length === 0 ? (
+          <p className="hint-text" style={{ margin: "0 4px 6px" }}>Nothing posted yet. Post one from Announcements (kind: Assistance) and it appears here right away.</p>
+        ) : (
+          <div className="table-panel no-shadow" style={{ maxHeight: 260, overflow: "auto" }}>
+            <table className="data-table compact">
+              <thead><tr><th>Program</th><th>Type</th><th>Deadline</th><th>Notified</th><th>Applications</th><th>To review</th><th>Incoming</th><th>Released</th><th>Denied</th></tr></thead>
+              <tbody>
+                {programStats.map(({ p, total, review, incoming, released, denied }) => (
+                  <tr key={p.id} style={{ cursor: "pointer", background: programFilter === p.id ? "var(--sage-pale)" : undefined }} onClick={() => setProgramFilter(programFilter === p.id ? "all" : p.id)}>
+                    <td><b>{p.title}</b></td><td>{p.assistance_type}</td><td>{p.deadline ? new Date(p.deadline).toLocaleDateString("en-PH") : "—"}</td>
+                    <td>{p.recipient_count ?? 0}</td><td><b>{total}</b></td><td>{review}</td><td>{incoming}</td><td>{released}</td><td>{denied}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {programFilter !== "all" && <p className="hint-text" style={{ margin: "8px 4px 0" }}>Showing only this program's applications. <a href="#" onClick={(e) => { e.preventDefault(); setProgramFilter("all"); }}>Show all programs</a></p>}
+      </div>
+
+      <div className="fd-row">
+        <FilterDropdown
+          label="Status" value={filter} onChange={setFilter} showZero
+          options={STATUS_CHIPS.map(([key, match]) => ({ key, label: key, count: chipCount(match) }))}
+        />
+        <FilterDropdown
+          label="Type of assistance" value={kind} onChange={setKind}
+          options={["All", ...KINDS].map((k) => ({ key: k, label: k === "All" ? "All kinds" : k, count: waiting[k] || 0 }))}
+        />
       </div>
 
       {kind !== "All" && (
@@ -172,6 +236,7 @@ export default function AdminAssistance() {
       <Modal open={!!reviewRow} onClose={() => setReviewRow(null)} title={`${reviewRow?.assistance_type || ""} — ${directory[reviewRow?.farmer_id]?.full_name || ""}`} icon="fa-hand-holding-dollar">
         {reviewRow && form && (
           <div className="modal-body">
+            <p className="hint-text" style={{ margin: 0 }}>Current status: <StatusBadge status={reviewRow.status} />{reviewRow.resolved_at ? <> · last updated {new Date(reviewRow.resolved_at).toLocaleDateString("en-PH")}</> : null}</p>
             {reviewRow.program_title && <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-hand-holding-heart"></i> Application for the posted assistance: <b>{reviewRow.program_title}</b></p>}
             {reviewProgram && <ProgramDetails type={reviewProgram.assistance_type} details={reviewProgram.details} />}
             {qual && (
@@ -190,6 +255,7 @@ export default function AdminAssistance() {
             <label>Expected/Distribution Date <input type="date" value={form.expected_date} onChange={(e) => setForm({ ...form, expected_date: e.target.value })} /></label>
             <label>Notes <input value={form.value_description} onChange={(e) => setForm({ ...form, value_description: e.target.value })} placeholder="Anything else the farmer should know" /></label>
             <div className="modal-actions">
+              {reviewRow.status !== "Pending" && <button className="btn-ghost" onClick={() => resolve("Pending")} disabled={saving}>Back to Pending</button>}
               <button className="btn-ghost" onClick={() => resolve("Under Review")} disabled={saving}>Under Review</button>
               <button className="btn-ghost" onClick={() => resolve("Incoming")} disabled={saving}>Mark Incoming</button>
               <button className="btn-ghost" style={{ color: "var(--danger)" }} onClick={() => resolve("Denied")} disabled={saving}>Deny</button>
