@@ -1,0 +1,6 @@
+.back-bar{margin:0 0 12px;}
+.back-btn{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border:1px solid var(--sage-pale);border-radius:999px;background:var(--white);color:var(--forest-deep);font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:background .15s ease,border-color .15s ease;}
+.back-btn:hover{background:var(--sage-pale);border-color:var(--sage);}
+/* pages that draw their own paper-form toolbar (RSBSA / PCIC) already have a Back button */
+.content:has(.pp-bar,.rp-bar) > .back-bar{display:none;}
+@media print{.back-bar{display:none;}}

@@ -1,6 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { tr } from "../lib/i18n";
 
 export default function ProtectedRoute({ allow, children }) {
   const { session, role, loading, profileError, logout } = useAuth();
@@ -8,7 +9,7 @@ export default function ProtectedRoute({ allow, children }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen text-forest-deep">
-        <i className="fa-solid fa-spinner fa-spin mr-2"></i> Loading session…
+        <i className="fa-solid fa-spinner fa-spin mr-2"></i> {tr("Loading session…")}
       </div>
     );
   }
@@ -20,7 +21,7 @@ export default function ProtectedRoute({ allow, children }) {
       <div className="flex items-center justify-center h-screen" style={{ flexDirection: "column", gap: 12, padding: 24, textAlign: "center" }}>
         <i className="fa-solid fa-triangle-exclamation" style={{ color: "var(--danger)", fontSize: "1.5rem" }}></i>
         <p>{profileError || "Signed in, but your account has no profile/role on file."}</p>
-        <button className="btn-ghost" onClick={async () => { await logout(); }}>Sign out</button>
+        <button className="btn-ghost" onClick={async () => { await logout(); }}>{tr("Sign out")}</button>
       </div>
     );
   }

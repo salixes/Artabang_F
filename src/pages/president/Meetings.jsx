@@ -38,7 +38,7 @@ export default function Meetings() {
     e.preventDefault();
     const { error } = await supabase.from("meetings").insert({ ...form, association_id: form.association_id || null, created_by: profile.id });
     if (error) return showToast(error.message, "fa-triangle-exclamation");
-    showToast("Meeting scheduled.", "fa-people-roof");
+    showToast(`Meeting scheduled for ${assocName(form.association_id || null).toLowerCase() === "all associations" ? "all associations" : assocName(form.association_id)} — its members were notified.`, "fa-people-roof");
     setOpen(false);
     load();
   }
@@ -62,7 +62,7 @@ export default function Meetings() {
 
   const assocName = (id) => associations.find((a) => a.id === id)?.name || "All Associations";
   const membersForMeeting = attendanceRow
-    ? (attendanceRow.association_id ? members.filter((m) => m.association_name === assocName(attendanceRow.association_id)) : members)
+    ? (attendanceRow.association_id ? members.filter((m) => m.association_name === assocName(attendanceRow.association_id)) : members.filter((m) => m.association_name))
     : [];
   const presentCount = membersForMeeting.filter((m) => attendance[m.id]).length;
 
@@ -91,9 +91,9 @@ export default function Meetings() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Schedule Meeting" icon="fa-people-roof">
         <form className="modal-body" onSubmit={submit}>
-          <label>Association
+          <label>Who is this meeting for?
             <select value={form.association_id} onChange={(e) => setForm({ ...form, association_id: e.target.value })}>
-              <option value="">All Associations</option>
+              <option value="">All associations</option>
               {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </label>

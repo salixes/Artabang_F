@@ -4,6 +4,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { formatPeso } from "../../lib/businessRules";
 import { ReleasedPieCard } from "../../components/ReleasedPie.jsx";
+import { tr } from "../../lib/i18n";
 
 export default function FarmerDashboard() {
   const { farmer, profile } = useAuth();
@@ -51,32 +52,32 @@ export default function FarmerDashboard() {
 
       <div className="welcome-card">
         <div className="welcome-text">
-          <span className="eyebrow">Barangay Lindaban · Registered Farmer</span>
-          <h1>Welcome, {profile?.full_name?.split(" ")[0] || "Farmer"}!</h1>
-          <p>Track your farm profile, harvest records, and assistance received from the Municipal Agriculture Office.</p>
-          <button className="btn-gold" onClick={() => navigate("/farmer/yield")}><i className="fa-solid fa-plus"></i> Report New Yield</button>
+          <span className="eyebrow">{tr("Barangay Lindaban · Registered Farmer")}</span>
+          <h1>{tr("Welcome,")} {profile?.full_name?.split(" ")[0] || "Farmer"}!</h1>
+          <p>{tr("Track your farm profile, harvest records, and assistance received from the Municipal Agriculture Office.")}</p>
+          <button className="btn-gold" onClick={() => navigate("/farmer/yield")}><i className="fa-solid fa-plus"></i> {tr("Report New Yield")}</button>
         </div>
       </div>
 
       <div className="stat-grid">
-        <div className="stat-card ring-total"><div className="stat-icon"><i className="fa-solid fa-wheat-awn"></i></div><div className="stat-num">{stats.totalYield.toLocaleString()}</div><div className="stat-label">Verified Yield (kg)</div></div>
-        <div className="stat-card ring-progress"><div className="stat-icon"><i className="fa-solid fa-hand-holding-dollar"></i></div><div className="stat-num">{stats.assistanceCount}</div><div className="stat-label">Assistance Records</div></div>
-        <div className="stat-card ring-pending"><div className="stat-icon"><i className="fa-solid fa-hourglass-half"></i></div><div className="stat-num">{stats.pendingCount}</div><div className="stat-label">Pending Applications</div></div>
-        <div className="stat-card ring-resolved"><div className="stat-icon"><i className="fa-solid fa-shield-heart"></i></div><div className="stat-num">{stats.insuranceCount}</div><div className="stat-label">Crops Insured</div></div>
+        <div className="stat-card ring-total"><div className="stat-icon"><i className="fa-solid fa-wheat-awn"></i></div><div className="stat-num">{stats.totalYield.toLocaleString()}</div><div className="stat-label">{tr("Verified Yield (kg)")}</div></div>
+        <div className="stat-card ring-progress"><div className="stat-icon"><i className="fa-solid fa-hand-holding-dollar"></i></div><div className="stat-num">{stats.assistanceCount}</div><div className="stat-label">{tr("Assistance Records")}</div></div>
+        <div className="stat-card ring-pending"><div className="stat-icon"><i className="fa-solid fa-hourglass-half"></i></div><div className="stat-num">{stats.pendingCount}</div><div className="stat-label">{tr("Pending Applications")}</div></div>
+        <div className="stat-card ring-resolved"><div className="stat-icon"><i className="fa-solid fa-shield-heart"></i></div><div className="stat-num">{stats.insuranceCount}</div><div className="stat-label">{tr("Crops Insured")}</div></div>
       </div>
 
-      <ReleasedPieCard title="My assistance already released" />
+      <ReleasedPieCard title={tr("My assistance already released")} />
 
       <div className="dash-grid">
         <div className="panel">
-          <div className="panel-head"><h3><i className="fa-solid fa-hand-holding-dollar"></i> Recent Assistance</h3><a href="#" className="link-more" onClick={(e) => { e.preventDefault(); navigate("/farmer/assistance"); }}>View all</a></div>
+          <div className="panel-head"><h3><i className="fa-solid fa-hand-holding-dollar"></i> {tr("Recent Assistance")}</h3><a href="#" className="link-more" onClick={(e) => { e.preventDefault(); navigate("/farmer/assistance"); }}>{tr("View all")}</a></div>
           <div className="table-panel no-shadow">
             <table className="data-table compact">
-              <thead><tr><th>Type</th><th>Value</th><th>Status</th></tr></thead>
+              <thead><tr><th>{tr("Type")}</th><th>{tr("Value")}</th><th>{tr("Status")}</th></tr></thead>
               <tbody>
-                {recentAssistance.length === 0 && <tr><td colSpan={3} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No assistance records yet.</td></tr>}
+                {recentAssistance.length === 0 && <tr><td colSpan={3} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No assistance records yet.")}</td></tr>}
                 {recentAssistance.map((a) => (
-                  <tr key={a.id}><td>{a.assistance_type}</td><td>{a.value_description || "—"}</td><td>{a.status}</td></tr>
+                  <tr key={a.id}><td>{tr(a.assistance_type)}</td><td>{a.value_description || "—"}</td><td>{tr(a.status)}</td></tr>
                 ))}
               </tbody>
             </table>

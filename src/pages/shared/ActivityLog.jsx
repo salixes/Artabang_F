@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getDeviceInfo } from "../../lib/device";
+import { tr } from "../../lib/i18n";
 
 /* ---------------------------------------------------------------- helpers */
 const ACTION_META = {
@@ -47,7 +48,7 @@ function DeviceCell({ r }) {
 function What({ r }) {
   return (
     <div>
-      <ActionBadge r={r} />{r.is_new_device && <span className="al-badge warn" title="First time this user signed in from this device"><i className="fa-solid fa-circle-exclamation"></i> New device</span>}
+      <ActionBadge r={r} />{r.is_new_device && <span className="al-badge warn" title={tr("First time this user signed in from this device")}><i className="fa-solid fa-circle-exclamation"></i> {tr("New device")}</span>}
       <div style={{ marginTop: 3 }}>{r.description || "—"}</div>
     </div>
   );
@@ -89,7 +90,7 @@ function MyActivityLog() {
     return Object.values(m).sort((a, b) => new Date(b.last) - new Date(a.last));
   }, [rows]);
 
-  if (!rows) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> Loading your activity…</p>;
+  if (!rows) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> {tr("Loading your activity…")}</p>;
   const logins = rows.filter((r) => r.action === "login");
   const monthAgo = Date.now() - 30 * 864e5;
   const failed30 = rows.filter((r) => r.action === "login_failed" && new Date(r.created_at) > monthAgo).length;
@@ -97,26 +98,26 @@ function MyActivityLog() {
 
   return (
     <section>
-      <div className="view-head"><h2><i className="fa-solid fa-clock-rotate-left"></i> Activity Log</h2></div>
-      <p className="hint-text"><i className="fa-solid fa-shield-halved"></i> <span>This is the activity of <b>your account only</b> — when you signed in, from which device, and what you did. If you see a sign-in or device you don't recognize, change your password right away.</span></p>
+      <div className="view-head"><h2><i className="fa-solid fa-clock-rotate-left"></i> {tr("Activity Log")}</h2></div>
+      <p className="hint-text"><i className="fa-solid fa-shield-halved"></i> <span>{tr("This is the activity of")} <b>{tr("your account only")}</b> {tr("— when you signed in, from which device, and what you did. If you see a sign-in or device you don't recognize, change your password right away.")}</span></p>
 
       <div className="al-stats">
-        <div className="al-stat"><b>{lastLogin ? ago(lastLogin.created_at) : "—"}</b><span>Previous sign-in{lastLogin ? ` · ${lastLogin.browser || ""}` : ""}</span></div>
-        <div className="al-stat"><b>{devices.length}</b><span>Devices used</span></div>
-        <div className="al-stat"><b>{logins.filter((r) => new Date(r.created_at) > monthAgo).length}</b><span>Sign-ins in the last 30 days</span></div>
-        <div className={`al-stat ${failed30 ? "bad" : ""}`}><b>{failed30}</b><span>Failed sign-in attempts (30 days)</span></div>
+        <div className="al-stat"><b>{lastLogin ? ago(lastLogin.created_at) : "—"}</b><span>{tr("Previous sign-in")}{lastLogin ? ` · ${lastLogin.browser || ""}` : ""}</span></div>
+        <div className="al-stat"><b>{devices.length}</b><span>{tr("Devices used")}</span></div>
+        <div className="al-stat"><b>{logins.filter((r) => new Date(r.created_at) > monthAgo).length}</b><span>{tr("Sign-ins in the last 30 days")}</span></div>
+        <div className={`al-stat ${failed30 ? "bad" : ""}`}><b>{failed30}</b><span>{tr("Failed sign-in attempts (30 days)")}</span></div>
       </div>
 
       <div className="panel" style={{ marginBottom: 18 }}>
-        <div className="panel-head"><h3><i className="fa-solid fa-laptop-mobile"></i> Devices that signed in to your account</h3></div>
+        <div className="panel-head"><h3><i className="fa-solid fa-laptop-mobile"></i> {tr("Devices that signed in to your account")}</h3></div>
         <div className="table-panel no-shadow">
           <table className="data-table">
-            <thead><tr><th>Device</th><th>Last used</th><th>Sign-ins</th></tr></thead>
+            <thead><tr><th>{tr("Device")}</th><th>{tr("Last used")}</th><th>{tr("Sign-ins")}</th></tr></thead>
             <tbody>
-              {devices.length === 0 && <tr><td colSpan={3} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No devices recorded yet.</td></tr>}
+              {devices.length === 0 && <tr><td colSpan={3} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No devices recorded yet.")}</td></tr>}
               {devices.map((d) => (
                 <tr key={d.key}>
-                  <td><DeviceCell r={d.r} />{d.key === thisDevice && <span className="al-badge ok" style={{ marginTop: 4 }}><i className="fa-solid fa-circle-check"></i> This device</span>}{d.isNew && <span className="al-badge warn" style={{ marginTop: 4 }}>New device</span>}</td>
+                  <td><DeviceCell r={d.r} />{d.key === thisDevice && <span className="al-badge ok" style={{ marginTop: 4 }}><i className="fa-solid fa-circle-check"></i> {tr("This device")}</span>}{d.isNew && <span className="al-badge warn" style={{ marginTop: 4 }}>{tr("New device")}</span>}</td>
                   <td>{fmt(d.last)} <small style={{ color: "var(--ink-soft)" }}>({ago(d.last)})</small></td>
                   <td>{d.logins}</td>
                 </tr>
@@ -127,17 +128,17 @@ function MyActivityLog() {
       </div>
 
       <div className="al-filters">
-        <select className="filter-select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type">{KIND_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select>
-        <label className="al-date">From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
-        <label className="al-date">To <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
-        <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search activity…" /></div>
+        <select className="filter-select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label={tr("Type")}>{KIND_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select>
+        <label className="al-date">{tr("From")} <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+        <label className="al-date">{tr("To")} <input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+        <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("Search activity…")} /></div>
       </div>
 
       <div className="table-panel">
         <table className="data-table">
-          <thead><tr><th>When</th><th>Activity</th><th>Device</th><th>Page</th></tr></thead>
+          <thead><tr><th>{tr("When")}</th><th>{tr("Activity")}</th><th>{tr("Device")}</th><th>{tr("Page")}</th></tr></thead>
           <tbody>
-            {filtered.length === 0 && <tr><td colSpan={4} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No activity matches.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={4} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No activity matches.")}</td></tr>}
             {filtered.slice(0, shown).map((r) => (
               <tr key={r.id}>
                 <td style={{ whiteSpace: "nowrap" }}>{fmt(r.created_at)}<small style={{ display: "block", color: "var(--ink-soft)" }}>{ago(r.created_at)}</small></td>
@@ -147,7 +148,7 @@ function MyActivityLog() {
           </tbody>
         </table>
       </div>
-      {filtered.length > shown && <div style={{ textAlign: "center", marginTop: 12 }}><button className="btn-ghost" onClick={() => setShown(shown + 100)}>Show more ({filtered.length - shown} left)</button></div>}
+      {filtered.length > shown && <div style={{ textAlign: "center", marginTop: 12 }}><button className="btn-ghost" onClick={() => setShown(shown + 100)}>{tr("Show more (")}{filtered.length - shown} {tr("left)")}</button></div>}
     </section>
   );
 }
@@ -211,7 +212,7 @@ function AdminActivityLog() {
     newDev: named.filter((r) => r.is_new_device).length,
   }), [named, users]);
 
-  if (!rows) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> Loading activity…</p>;
+  if (!rows) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> {tr("Loading activity…")}</p>;
 
   const userOptions = Object.values(people).sort((a, b) => (a.full_name || "").localeCompare(b.full_name || ""));
   const suspicious = users.filter((u) => u.failed >= 3).sort((a, b) => b.failed - a.failed);
@@ -235,48 +236,48 @@ function AdminActivityLog() {
 
   return (
     <section>
-      <div className="print-only print-report-header"><h1>AgriTabang — Activity Log</h1><p>{label} · {filtered.length} event{filtered.length === 1 ? "" : "s"}</p><p>Generated {new Date().toLocaleString("en-PH")}</p></div>
+      <div className="print-only print-report-header"><h1>{tr("AgriTabang — Activity Log")}</h1><p>{label} · {filtered.length} {tr("event")}{filtered.length === 1 ? "" : "s"}</p><p>{tr("Generated")} {new Date().toLocaleString("en-PH")}</p></div>
       <div className="no-print">
         <div className="view-head">
-          <h2><i className="fa-solid fa-clock-rotate-left"></i> Activity Log <small className="al-admin-tag"><i className="fa-solid fa-user-shield"></i> All users</small></h2>
+          <h2><i className="fa-solid fa-clock-rotate-left"></i> {tr("Activity Log")} <small className="al-admin-tag"><i className="fa-solid fa-user-shield"></i> {tr("All users")}</small></h2>
           <div className="head-actions">
-            <select className="filter-select" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="Range">{RANGES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}</select>
-            <button className="btn-ghost" onClick={exportCsv}><i className="fa-solid fa-file-csv"></i> Export CSV</button>
-            <button className="btn-primary" onClick={() => window.print()}><i className="fa-solid fa-print"></i> Print</button>
+            <select className="filter-select" value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label={tr("Range")}>{RANGES.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}</select>
+            <button className="btn-ghost" onClick={exportCsv}><i className="fa-solid fa-file-csv"></i> {tr("Export CSV")}</button>
+            <button className="btn-primary" onClick={() => window.print()}><i className="fa-solid fa-print"></i> {tr("Print")}</button>
           </div>
         </div>
-        <p className="hint-text"><i className="fa-solid fa-user-shield"></i> <span>Admin view: the activity of <b>every farmer and the president</b> (and yours), with IP addresses, devices, and security alerts. Farmers and the president can only see their own log.</span></p>
+        <p className="hint-text"><i className="fa-solid fa-user-shield"></i> <span>{tr("Admin view: the activity of")} <b>{tr("every farmer and the president")}</b> {tr("(and yours), with IP addresses, devices, and security alerts. Farmers and the president can only see their own log.")}</span></p>
 
         <div className="al-stats">
-          <div className="al-stat"><b>{stats.events.toLocaleString()}</b><span>Events · {label.toLowerCase()}</span></div>
-          <div className="al-stat"><b>{stats.active}</b><span>Active users</span></div>
-          <div className="al-stat"><b>{stats.logins}</b><span>Sign-ins</span></div>
-          <div className={`al-stat ${stats.failed ? "bad" : ""}`}><b>{stats.failed}</b><span>Failed sign-ins</span></div>
-          <div className={`al-stat ${stats.newDev ? "warn" : ""}`}><b>{stats.newDev}</b><span>New-device sign-ins</span></div>
+          <div className="al-stat"><b>{stats.events.toLocaleString()}</b><span>{tr("Events ·")} {label.toLowerCase()}</span></div>
+          <div className="al-stat"><b>{stats.active}</b><span>{tr("Active users")}</span></div>
+          <div className="al-stat"><b>{stats.logins}</b><span>{tr("Sign-ins")}</span></div>
+          <div className={`al-stat ${stats.failed ? "bad" : ""}`}><b>{stats.failed}</b><span>{tr("Failed sign-ins")}</span></div>
+          <div className={`al-stat ${stats.newDev ? "warn" : ""}`}><b>{stats.newDev}</b><span>{tr("New-device sign-ins")}</span></div>
         </div>
-        {rows.length >= LIMIT && <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>Showing the latest {LIMIT.toLocaleString()} events in this range. Choose a shorter range to see the rest.</span></p>}
+        {rows.length >= LIMIT && <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>{tr("Showing the latest")} {LIMIT.toLocaleString()} {tr("events in this range. Choose a shorter range to see the rest.")}</span></p>}
 
         <div className="al-tabs" role="tablist">
-          <button className={tab === "activity" ? "on" : ""} onClick={() => setTab("activity")}>All activity</button>
-          <button className={tab === "users" ? "on" : ""} onClick={() => setTab("users")}>Users ({users.length})</button>
-          <button className={tab === "security" ? "on" : ""} onClick={() => setTab("security")}>Security alerts{stats.failed + stats.newDev > 0 ? ` (${stats.failed + stats.newDev})` : ""}</button>
+          <button className={tab === "activity" ? "on" : ""} onClick={() => setTab("activity")}>{tr("All activity")}</button>
+          <button className={tab === "users" ? "on" : ""} onClick={() => setTab("users")}>{tr("Users (")}{users.length})</button>
+          <button className={tab === "security" ? "on" : ""} onClick={() => setTab("security")}>{tr("Security alerts")}{stats.failed + stats.newDev > 0 ? ` (${stats.failed + stats.newDev})` : ""}</button>
         </div>
       </div>
 
       {tab === "activity" && (
         <>
           <div className="al-filters no-print">
-            <select className="filter-select" value={roleF} onChange={(e) => setRoleF(e.target.value)} aria-label="Role"><option value="all">All roles</option><option value="farmer">Farmers</option><option value="president">President</option><option value="admin">Admin</option></select>
-            <select className="filter-select" value={userF} onChange={(e) => setUserF(e.target.value)} aria-label="User"><option value="all">All users</option>{userOptions.map((p) => <option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}</select>
-            <select className="filter-select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Type">{KIND_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select>
-            <select className="filter-select" value={devF} onChange={(e) => setDevF(e.target.value)} aria-label="Device"><option value="all">All devices</option><option>Desktop</option><option>Mobile</option><option>Tablet</option></select>
-            <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, IP, page…" /></div>
+            <select className="filter-select" value={roleF} onChange={(e) => setRoleF(e.target.value)} aria-label={tr("Role")}><option value="all">{tr("All roles")}</option><option value="farmer">{tr("Farmers")}</option><option value="president">{tr("President")}</option><option value="admin">{tr("Admin")}</option></select>
+            <select className="filter-select" value={userF} onChange={(e) => setUserF(e.target.value)} aria-label={tr("User")}><option value="all">{tr("All users")}</option>{userOptions.map((p) => <option key={p.id} value={p.id}>{p.full_name} ({p.role})</option>)}</select>
+            <select className="filter-select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label={tr("Type")}>{KIND_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select>
+            <select className="filter-select" value={devF} onChange={(e) => setDevF(e.target.value)} aria-label={tr("Device")}><option value="all">{tr("All devices")}</option><option>{tr("Desktop")}</option><option>{tr("Mobile")}</option><option>{tr("Tablet")}</option></select>
+            <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("Search name, IP, page…")} /></div>
           </div>
           <div className="table-panel">
             <table className="data-table print-table">
-              <thead><tr><th>When</th><th>User</th><th>Activity</th><th>Device</th><th>IP address</th><th>Page</th></tr></thead>
+              <thead><tr><th>{tr("When")}</th><th>{tr("User")}</th><th>{tr("Activity")}</th><th>{tr("Device")}</th><th>{tr("IP address")}</th><th>{tr("Page")}</th></tr></thead>
               <tbody>
-                {filtered.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No activity matches these filters.</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No activity matches these filters.")}</td></tr>}
                 {filtered.slice(0, shown).map((r) => (
                   <tr key={r.id}>
                     <td style={{ whiteSpace: "nowrap" }}>{fmt(r.created_at)}<small style={{ display: "block", color: "var(--ink-soft)" }}>{ago(r.created_at)}</small></td>
@@ -289,26 +290,26 @@ function AdminActivityLog() {
               </tbody>
             </table>
           </div>
-          {filtered.length > shown && <div className="no-print" style={{ textAlign: "center", marginTop: 12 }}><button className="btn-ghost" onClick={() => setShown(shown + 150)}>Show more ({filtered.length - shown} left)</button></div>}
+          {filtered.length > shown && <div className="no-print" style={{ textAlign: "center", marginTop: 12 }}><button className="btn-ghost" onClick={() => setShown(shown + 150)}>{tr("Show more (")}{filtered.length - shown} {tr("left)")}</button></div>}
         </>
       )}
 
       {tab === "users" && (
         <div className="table-panel">
           <table className="data-table">
-            <thead><tr><th>User</th><th>Last seen</th><th>Last device</th><th>Last IP</th><th>Sign-ins</th><th>Devices</th><th>Failed</th><th>Events</th><th></th></tr></thead>
+            <thead><tr><th>{tr("User")}</th><th>{tr("Last seen")}</th><th>{tr("Last device")}</th><th>{tr("Last IP")}</th><th>{tr("Sign-ins")}</th><th>{tr("Devices")}</th><th>{tr("Failed")}</th><th>{tr("Events")}</th><th></th></tr></thead>
             <tbody>
-              {users.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No activity in this range.</td></tr>}
+              {users.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No activity in this range.")}</td></tr>}
               {users.map((u) => (
                 <tr key={u.id}>
                   <td><b>{u.name}</b><small style={{ display: "block", color: "var(--ink-soft)", textTransform: "capitalize" }}>{u.role}</small></td>
-                  <td style={{ whiteSpace: "nowrap" }}>{Date.now() - new Date(u.last).getTime() < 5 * 60000 && <span className="al-dot" title="Active in the last 5 minutes"></span>}{ago(u.last)}<small style={{ display: "block", color: "var(--ink-soft)" }}>{fmt(u.last)}</small></td>
+                  <td style={{ whiteSpace: "nowrap" }}>{Date.now() - new Date(u.last).getTime() < 5 * 60000 && <span className="al-dot" title={tr("Active in the last 5 minutes")}></span>}{ago(u.last)}<small style={{ display: "block", color: "var(--ink-soft)" }}>{fmt(u.last)}</small></td>
                   <td><DeviceCell r={u.lastRow} /></td>
                   <td style={{ fontFamily: "monospace", fontSize: ".78rem" }}>{u.lastIp || "—"}</td>
                   <td>{u.logins}</td><td>{u.devices.size}</td>
                   <td style={{ color: u.failed ? "var(--danger)" : undefined, fontWeight: u.failed ? 700 : 400 }}>{u.failed}</td>
                   <td>{u.events}</td>
-                  <td><button className="btn-ghost" style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={() => openUser(u.id)}>View log</button></td>
+                  <td><button className="btn-ghost" style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={() => openUser(u.id)}>{tr("View log")}</button></td>
                 </tr>
               ))}
             </tbody>
@@ -319,29 +320,29 @@ function AdminActivityLog() {
       {tab === "security" && (
         <>
           <div className="panel" style={{ marginBottom: 18 }}>
-            <div className="panel-head"><h3><i className="fa-solid fa-triangle-exclamation"></i> Repeated failed sign-ins</h3></div>
-            {suspicious.length === 0 ? <p className="hint-text" style={{ margin: "0 4px" }}>No account has 3 or more failed sign-ins in this range.</p> : (
+            <div className="panel-head"><h3><i className="fa-solid fa-triangle-exclamation"></i> {tr("Repeated failed sign-ins")}</h3></div>
+            {suspicious.length === 0 ? <p className="hint-text" style={{ margin: "0 4px" }}>{tr("No account has 3 or more failed sign-ins in this range.")}</p> : (
               <div className="table-panel no-shadow"><table className="data-table">
-                <thead><tr><th>User</th><th>Failed attempts</th><th>Last attempt</th><th>From</th><th></th></tr></thead>
+                <thead><tr><th>{tr("User")}</th><th>{tr("Failed attempts")}</th><th>{tr("Last attempt")}</th><th>{tr("From")}</th><th></th></tr></thead>
                 <tbody>{suspicious.map((u) => {
                   const lastFail = failedRows.find((r) => r.user_id === u.id);
                   return (
                     <tr key={u.id}>
                       <td><b>{u.name}</b><small style={{ display: "block", color: "var(--ink-soft)", textTransform: "capitalize" }}>{u.role}</small></td>
-                      <td><span className={`al-badge ${u.failed >= 5 ? "bad" : "warn"}`}>{u.failed}</span> {u.failed >= 5 && <small style={{ color: "var(--danger)" }}>Possible password guessing</small>}</td>
+                      <td><span className={`al-badge ${u.failed >= 5 ? "bad" : "warn"}`}>{u.failed}</span> {u.failed >= 5 && <small style={{ color: "var(--danger)" }}>{tr("Possible password guessing")}</small>}</td>
                       <td>{lastFail ? fmt(lastFail.created_at) : "—"}</td>
                       <td style={{ fontSize: ".78rem" }}>{lastFail ? `${lastFail.browser || ""} · ${lastFail.os || ""}${lastFail.ip_address ? ` · ${lastFail.ip_address}` : ""}` : "—"}</td>
-                      <td><button className="btn-ghost" style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={() => openUser(u.id)}>View log</button></td>
+                      <td><button className="btn-ghost" style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={() => openUser(u.id)}>{tr("View log")}</button></td>
                     </tr>
                   );
                 })}</tbody></table></div>
             )}
           </div>
           <div className="panel">
-            <div className="panel-head"><h3><i className="fa-solid fa-circle-exclamation"></i> Sign-ins from a new device</h3></div>
-            {newDeviceRows.length === 0 ? <p className="hint-text" style={{ margin: "0 4px" }}>No sign-ins from a new device in this range.</p> : (
+            <div className="panel-head"><h3><i className="fa-solid fa-circle-exclamation"></i> {tr("Sign-ins from a new device")}</h3></div>
+            {newDeviceRows.length === 0 ? <p className="hint-text" style={{ margin: "0 4px" }}>{tr("No sign-ins from a new device in this range.")}</p> : (
               <div className="table-panel no-shadow"><table className="data-table">
-                <thead><tr><th>When</th><th>User</th><th>Device</th><th>IP address</th></tr></thead>
+                <thead><tr><th>{tr("When")}</th><th>{tr("User")}</th><th>{tr("Device")}</th><th>{tr("IP address")}</th></tr></thead>
                 <tbody>{newDeviceRows.map((r) => (
                   <tr key={r.id}><td style={{ whiteSpace: "nowrap" }}>{fmt(r.created_at)}</td><td><b>{r.name}</b><small style={{ display: "block", color: "var(--ink-soft)", textTransform: "capitalize" }}>{r.role}</small></td>
                     <td><DeviceCell r={r} /></td><td style={{ fontFamily: "monospace", fontSize: ".78rem" }}>{r.ip_address || "—"}</td></tr>

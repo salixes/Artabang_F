@@ -39,7 +39,7 @@ export default function CropVerification({ onOpenForm } = {}) {
     const latest = {};
     (eds || []).forEach((e) => { if (!latest[e.crop_registration_id]) latest[e.crop_registration_id] = e; });
     setEdits(latest);
-    setRows(crops || []);
+    setRows((crops || []).slice().sort((a, b) => new Date(b.edited_at || b.registered_at) - new Date(a.edited_at || a.registered_at)));
     setNames(Object.fromEntries((dir || []).map((d) => [d.id, d.full_name])));
   }
   useEffect(() => { load(); }, []);
@@ -67,7 +67,7 @@ export default function CropVerification({ onOpenForm } = {}) {
     setBusy(null);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
     logActivity(`${status === "Verified" ? "Verified" : "Rejected"} ${row.crop_name} registration of ${names[row.farmer_id] || "a farmer"}`, "crop");
-    showToast(`Crop registration ${status.toLowerCase()}. The farmer was notified.`, status === "Verified" ? "fa-circle-check" : "fa-circle-xmark");
+    showToast(status === "Verified" ? "Crop approved. The farmer's records were updated and the farmer was notified." : "Crop registration rejected. The farmer was notified.", status === "Verified" ? "fa-circle-check" : "fa-circle-xmark");
     load();
   }
 

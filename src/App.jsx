@@ -8,6 +8,8 @@ import Login from "./pages/auth/Login.jsx";
 
 import FarmerDashboard from "./pages/farmer/Dashboard.jsx";
 import FarmerProfile from "./pages/farmer/Profile.jsx";
+import FarmerRsbsaEnrollment from "./pages/farmer/RsbsaEnrollment.jsx";
+import RsbsaValidation from "./pages/admin/RsbsaValidation.jsx";
 import FarmerCrops from "./pages/farmer/Crops.jsx";
 import FarmerYield from "./pages/farmer/Yield.jsx";
 import FarmerInsurance from "./pages/farmer/Insurance.jsx";
@@ -23,7 +25,6 @@ import AdminYield from "./pages/admin/Yield.jsx";
 import AdminInsurance from "./pages/admin/Insurance.jsx";
 import AdminAssistance from "./pages/admin/Assistance.jsx";
 import AdminAnnouncements from "./pages/admin/Announcements.jsx";
-import AssistanceAnnouncement from "./pages/admin/AssistanceAnnouncement.jsx";
 import CropApproval from "./pages/admin/CropApproval.jsx";
 import ActivityLog from "./pages/shared/ActivityLog.jsx";
 
@@ -58,6 +59,7 @@ export default function App() {
       <Route path="/farmer" element={<ProtectedRoute allow="farmer"><Layout role="farmer" /></ProtectedRoute>}>
         <Route index element={<FarmerDashboard />} />
         <Route path="profile" element={<FarmerProfile />} />
+        <Route path="rsbsa" element={<FarmerRsbsaEnrollment />} />
         <Route path="activity-log" element={<ActivityLog />} />
         <Route path="crops" element={<FarmerCrops />} />
         <Route path="yield" element={<FarmerYield />} />
@@ -75,12 +77,13 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="farmers" element={<AdminFarmers />} />
+        <Route path="rsbsa-validation" element={<RsbsaValidation />} />
         <Route path="crops" element={<CropApproval />} />
         <Route path="requests" element={<Navigate to="/admin/crops" replace />} />
         <Route path="yield" element={<AdminYield />} />
         <Route path="insurance" element={<AdminInsurance />} />
         <Route path="assistance" element={<AdminAssistance />} />
-        <Route path="assistance-announcement" element={<AssistanceAnnouncement />} />
+        <Route path="assistance-announcement" element={<Navigate to="/admin/announcements" replace />} />
         <Route path="reports" element={<Reports title="Assistance Reports" />} />
         <Route path="association" element={<Association scope="admin" />} />
         <Route path="announcements" element={<AdminAnnouncements />} />

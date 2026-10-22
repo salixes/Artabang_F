@@ -1,6 +1,8 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./pcic-paper.css";
 import { Seg } from "./RsbsaPaper.jsx";
+import SignatureField from "./SignaturePad.jsx";
+import "./formErrors.css";
 import {
   PCIC_SEG, CROPS, APP_TYPES, CATEGORIES, SEXES, CIVILS, PAYMENTS, PLANTING, LAND, TENURE, PREMIUM, LOT_COUNT,
   applyDeps, isHvc, isRenewal, isBorrowing, payIndex,
@@ -254,7 +256,7 @@ export default function PcicPaper({ values: v, setValues, errors = {}, readOnly 
                 <p><b><u>Deed of Assignment</u> for borrowing farmers</b> <i>(if applicable)</i></p>
                 <p className={!ro && !bor ? "dim" : ""}>{cb("cert3", "I hereby assign all or part of my rights, title, and interest in this insurance coverage to the Assignee (Lender) stated above. This assignment includes any indemnities that may become payable under the terms of the policy. I acknowledge that this assignment is made in accordance with the terms and conditions of the insurance policy and is subject to the approval of the insurance provider.", { disabled: !bor, style: { alignItems: "flex-start", whiteSpace: "normal" } })}</p></div>
                 <div className="cl ctr" style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end", paddingBottom: 6 }}>
-                  {t("sign", "ul", { placeholder: ro ? "" : "Type name as signature", style: { textAlign: "center", marginBottom: 2 } })}Signature or Thumb Mark over Printed Name<br /><b>Farmer &ndash; Applicant</b>
+                  <SignatureField underline readOnly={ro} bad={bad("sign")} image={v.signImage} typed={v.sign} name={[v.fName, v.mName, v.lName, v.suffix].filter(Boolean).join(" ")} onChange={(img) => patch({ signImage: img, sign: "", signedAt: img ? new Date().toISOString() : "" })} />Signature or Thumb Mark over Printed Name<br /><b>Farmer &ndash; Applicant</b>
                   <div style={{ marginTop: 12, textAlign: "left" }}>Date {dt("signDate", { width: 110, display: "inline-block" })}<br /><i style={{ paddingLeft: 70 }}>(mm/dd/yyyy)</i></div></div></div>
 
               <div className="sec">D. &nbsp;COVERAGE (FOR PCIC USE ONLY)</div>

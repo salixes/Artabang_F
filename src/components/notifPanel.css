@@ -1,0 +1,5 @@
+/* bell dropdown: shows the new notifications, then closes by itself after 5 seconds (no progress bar) */
+.notif-panel{max-height:min(70vh,420px);overflow-y:auto;}
+.notif-panel .notif-item{cursor:pointer;}
+.notif-all{display:block;width:100%;margin-top:10px;padding:8px 10px;border:1px solid var(--sage-pale);border-radius:10px;background:transparent;color:var(--forest-deep);font:inherit;font-size:.78rem;font-weight:600;cursor:pointer;}
+.notif-all:hover{background:var(--sage-pale);}

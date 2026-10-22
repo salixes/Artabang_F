@@ -36,9 +36,12 @@ export default function AdminRequests() {
     load();
   }
 
+  // The old profile "Request Change" is gone (changes are now sent from Crop Registration and
+  // appear above in Crop Verification). Only show this block while old requests still exist.
+  if (cropRequests.length === 0 && legacyRequests.length === 0) return null;
   return (
     <section>
-      <div className="view-head"><h2><i className="fa-solid fa-file-circle-check"></i> Crop Change Requests</h2></div>
+      <div className="view-head"><h2><i className="fa-solid fa-file-circle-check"></i> Older Crop Change Requests</h2></div>
       <p className="hint-text"><i className="fa-solid fa-circle-info"></i> Plants Grown is important farm information — a farmer's requested change only takes effect once ADMIN marks it Verified. General profile edits (contact info, photo, password) no longer require approval and are already applied directly by the farmer.</p>
       <div className="table-panel">
         <table className="data-table">

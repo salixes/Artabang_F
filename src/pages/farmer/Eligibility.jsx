@@ -4,8 +4,10 @@ import { logActivity } from "../../lib/activity";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useToast } from "../../context/ToastContext.jsx";
 import { StatusBadge } from "../../components/Badges.jsx";
+import ProgramDetails from "../../components/ProgramDetails.jsx";
 import { ASSISTANCE_TYPES, runQualificationCheck } from "../../lib/businessRules";
 import { recordTypeFor, isApplicationOpen, fmtDate } from "../../lib/assistancePrograms";
+import { tr } from "../../lib/i18n";
 
 export default function FarmerEligibility() {
   const { farmer } = useAuth();
@@ -42,20 +44,22 @@ export default function FarmerEligibility() {
   async function apply(a) {
     if (!confirm(`Apply for "${a.title}"?`)) return;
     setApplying(a.id);
-    const { error } = await supabase.from("assistance_records").insert({
-      farmer_id: farmer.id, assistance_type: recordTypeFor(a.assistance_type), source: "MAO", status: "Pending", announcement_id: a.id,
-    });
+    const row = { farmer_id: farmer.id, assistance_type: recordTypeFor(a.assistance_type), status: "Pending", announcement_id: a.id };
+    // the application keeps the source the admin announced (MAO / Department of Agriculture / Other Program)
+    let { error } = await supabase.from("assistance_records").insert({ ...row, source: a.details?.source || "MAO" });
+    // an older database only accepts MAO or Other Program as a source
+    if (error && error.code === "23514") ({ error } = await supabase.from("assistance_records").insert({ ...row, source: a.details?.source === "MAO" ? "MAO" : "Other Program" }));
     setApplying(null);
     if (error) {
       const msg = error.code === "23505" || /duplicate key/.test(error.message) ? "You already applied for this assistance." : error.message;
       return showToast(msg, "fa-triangle-exclamation");
     }
     logActivity(`Applied for "${a.title}"`, "assistance");
-    showToast("Application submitted. The MAO has been notified.", "fa-file-circle-plus");
+    showToast(tr("Application submitted. The MAO has been notified."), "fa-file-circle-plus");
     load();
   }
 
-  if (!directoryRow || !ctx) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> Checking eligibility…</p>;
+  if (!directoryRow || !ctx) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> {tr("Checking eligibility…")}</p>;
 
   const results = ASSISTANCE_TYPES.map((t) => ({ type: t, ...runQualificationCheck(t, directoryRow, ctx) }));
   const anyQualified = results.some((r) => r.qualified);
@@ -73,11 +77,11 @@ export default function FarmerEligibility() {
 
   return (
     <section>
-      <div className="view-head"><h2><i className="fa-solid fa-clipboard-check"></i> My Eligibility</h2></div>
+      <div className="view-head"><h2><i className="fa-solid fa-clipboard-check"></i> {tr("My Eligibility")}</h2></div>
 
       {programs.length > 0 && (
         <>
-          <p className="rsbsa-subhead"><i className="fa-solid fa-hand-holding-heart"></i> Posted assistance for you</p>
+          <p className="rsbsa-subhead"><i className="fa-solid fa-hand-holding-heart"></i> {tr("Posted assistance for you")}</p>
           <div className="qual-box">
             <b>{eligibleCount > 0 ? `You are eligible to apply for ${eligibleCount} posted assistance program${eligibleCount === 1 ? "" : "s"}.` : "Here is where you stand on the assistance the MAO has posted for you."}</b>
           </div>
@@ -86,10 +90,11 @@ export default function FarmerEligibility() {
               <div className="panel" key={a.id}>
                 <div className="panel-head"><h3><i className={`fa-solid ${a.icon || "fa-hand-holding-dollar"}`}></i> {a.title}</h3></div>
                 <div className="aa-meta">
-                  <span className="aa-badge">{a.assistance_type}</span>
-                  {a.deadline && <span className="aa-badge soft"><i className="fa-solid fa-calendar-day"></i> Deadline {fmtDate(a.deadline)}</span>}
+                  <span className="aa-badge">{tr(a.assistance_type)}</span>
+                  {a.deadline && <span className="aa-badge soft"><i className="fa-solid fa-calendar-day"></i> {tr("Deadline")} {fmtDate(a.deadline)}</span>}
                 </div>
                 <p style={{ padding: "0 4px 8px", fontSize: ".85rem", color: "var(--ink-soft)", whiteSpace: "pre-wrap" }}>{a.body}</p>
+                <ProgramDetails type={a.assistance_type} details={a.details} />
                 <ul className="detail-list">
                   {checks.map((c, i) => (
                     <li key={i}><span><i className={`fa-solid ${c.pass ? "fa-circle-check" : "fa-circle-xmark"}`} style={{ color: c.pass ? "var(--resolved)" : "var(--danger)", marginRight: 6 }}></i>{c.label}</span></li>
@@ -98,7 +103,7 @@ export default function FarmerEligibility() {
                 <div style={{ padding: "10px 4px 2px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                   <b style={{ color: eligible ? "var(--resolved)" : "var(--danger)" }}>{eligible ? "You are eligible" : open ? "Not eligible yet" : "Applications closed"}</b>
                   {application
-                    ? <span>Applied · <StatusBadge status={application.status} /></span>
+                    ? <span>{tr("Applied ·")} <StatusBadge status={application.status} /></span>
                     : <button className="btn-primary" disabled={!eligible || applying === a.id} onClick={() => apply(a)}>
                         <i className="fa-solid fa-file-circle-plus"></i> {applying === a.id ? "Submitting…" : "Apply"}
                       </button>}
@@ -106,18 +111,18 @@ export default function FarmerEligibility() {
               </div>
             ))}
           </div>
-          <p className="rsbsa-subhead"><i className="fa-solid fa-list-check"></i> All assistance programs</p>
+          <p className="rsbsa-subhead"><i className="fa-solid fa-list-check"></i> {tr("All assistance programs")}</p>
         </>
       )}
 
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> A quick status check across every assistance program, using the same Automatic Qualification Check the Barangay and ADMIN see.</p>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> {tr("A quick status check across every assistance program, using the same Automatic Qualification Check the Barangay and ADMIN see.")}</p>
       <div className={`qual-box`}>
         <b>{anyQualified ? "You qualify for at least one program." : "You currently don't qualify for any program yet."}</b>
       </div>
       <div className="program-grid">
         {results.map((r) => (
           <div className="panel" key={r.type}>
-            <div className="panel-head"><h3>{r.type}</h3></div>
+            <div className="panel-head"><h3>{tr(r.type)}</h3></div>
             <ul className="detail-list">
               {r.checks.map((c, i) => (
                 <li key={i}><span><i className={`fa-solid ${c.pass ? "fa-circle-check" : "fa-circle-xmark"}`} style={{ color: c.pass ? "var(--resolved)" : "var(--danger)", marginRight: 6 }}></i>{c.label}</span></li>

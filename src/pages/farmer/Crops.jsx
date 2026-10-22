@@ -7,6 +7,7 @@ import { InsuredBadge, StatusBadge } from "../../components/Badges.jsx";
 import Modal from "../../components/Modal.jsx";
 import { CROP_LIST } from "../../lib/businessRules";
 import PcicApplication, { PcicView } from "./PcicApplication.jsx";
+import { tr } from "../../lib/i18n";
 
 const OTHER = "__other";
 const REASONS = [
@@ -65,10 +66,10 @@ export default function FarmerCrops() {
   async function saveEdit(e) {
     e.preventDefault();
     const cropName = form.crop === OTHER ? titleCase(form.crop_other) : form.crop;
-    if (!cropName) return showToast("Please enter the crop / plant name.", "fa-triangle-exclamation");
-    if (!(Number(form.area) > 0)) return showToast("Please enter a valid area in hectares.", "fa-triangle-exclamation");
-    if (!form.reason) return showToast("Please choose the reason for this change.", "fa-triangle-exclamation");
-    if (form.reason === "Other" && !form.details.trim()) return showToast("Please describe the reason.", "fa-triangle-exclamation");
+    if (!cropName) return showToast(tr("Please enter the crop / plant name."), "fa-triangle-exclamation");
+    if (!(Number(form.area) > 0)) return showToast(tr("Please enter a valid area in hectares."), "fa-triangle-exclamation");
+    if (!form.reason) return showToast(tr("Please choose the reason for this change."), "fa-triangle-exclamation");
+    if (form.reason === "Other" && !form.details.trim()) return showToast(tr("Please describe the reason."), "fa-triangle-exclamation");
 
     const next = {
       crop_name: cropName, area: Number(form.area), planting_date: form.planting_date,
@@ -77,7 +78,7 @@ export default function FarmerCrops() {
     const unchanged = next.crop_name === editRow.crop_name && next.area === Number(editRow.area) && next.planting_date === editRow.planting_date
       && (next.variety || null) === (editRow.variety || null) && (next.land_category || null) === (editRow.land_category || null)
       && (next.tenurial_status || null) === (editRow.tenurial_status || null);
-    if (unchanged) return showToast("Nothing was changed.", "fa-circle-info");
+    if (unchanged) return showToast(tr("Nothing was changed."), "fa-circle-info");
 
     const reason = form.details.trim() ? (form.reason === "Other" ? form.details.trim() : `${form.reason}: ${form.details.trim()}`) : form.reason;
     setSaving(true);
@@ -88,8 +89,9 @@ export default function FarmerCrops() {
         ? `${error.message} — run supabase/migrations/crop_edit_reason.sql in the Supabase SQL editor first.` : error.message;
       return showToast(msg, "fa-triangle-exclamation");
     }
-    logActivity(`Edited crop ${editRow.crop_name} — ${reason}`, "crop");
-    showToast("Crop updated. The MAO will verify it again.", "fa-pen-to-square");
+    try { await supabase.rpc("notify_admin_crop", { p_crop: editRow.id, p_kind: "edited", p_reason: reason }); } catch (_) { /* the database trigger also notifies */ }
+    logActivity(`Requested a change to crop ${editRow.crop_name} — ${reason}`, "crop");
+    showToast(tr("Change request sent to the admin for approval."), "fa-paper-plane");
     setEditRow(null);
     load();
   }
@@ -99,25 +101,25 @@ export default function FarmerCrops() {
 
   return (
     <section>
-      <div className="view-head"><h2><i className="fa-solid fa-tractor"></i> Crop Registration</h2><button className="btn-primary" onClick={() => setScreen("new")}><i className="fa-solid fa-plus"></i> Register Crop</button></div>
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>Register Crop opens the PCIC Application for Crop Insurance (one long bond sheet). A newly registered crop is Pending until the MAO verifies it — only verified crops count toward assistance eligibility. Made a mistake (wrong plant, area, date…)? Use the <i className="fa-solid fa-pen-to-square"></i> edit button and give a reason; the crop goes back to Pending for re-verification. Registrations can't be deleted.</span></p>
+      <div className="view-head"><h2><i className="fa-solid fa-tractor"></i> {tr("Crop Registration")}</h2><button className="btn-primary" onClick={() => setScreen("new")}><i className="fa-solid fa-plus"></i> {tr("Register Crop")}</button></div>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>{tr("Register Crop opens the PCIC Application for Crop Insurance (one long bond sheet). A newly registered crop is Pending until the MAO verifies it — only verified crops count toward assistance eligibility. Need to change something (wrong plant, area, date…)? Press")} <b>{tr("Request change")}</b> {tr("on that crop and give a reason. It is sent to the admin's Crop Approval page and the crop goes back to Pending until it is approved. Registrations can't be deleted.")}</span></p>
       <div className="table-panel">
         <table className="data-table">
-          <thead><tr><th>Crop / Plant Name</th><th>Area (ha)</th><th>Planting Date</th><th>Variety</th><th>Land Category</th><th>Tenurial Status</th><th>Verification</th><th>Insurance</th><th></th></tr></thead>
+          <thead><tr><th>{tr("Crop / Plant Name")}</th><th>{tr("Area (ha)")}</th><th>{tr("Planting Date")}</th><th>{tr("Variety")}</th><th>{tr("Land Category")}</th><th>{tr("Tenurial Status")}</th><th>{tr("Verification")}</th><th>{tr("Insurance")}</th><th></th></tr></thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No crops registered yet.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No crops registered yet.")}</td></tr>}
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{r.crop_name}</td><td>{r.area}</td><td>{r.planting_date}</td><td>{r.variety || "—"}</td><td>{r.land_category || "—"}</td><td>{r.tenurial_status || "—"}</td>
                 <td>
                   <StatusBadge status={r.status || "Pending"} />
-                  {r.status === "Rejected" && r.remarks && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>MAO: {r.remarks}</div>}
-                  {r.last_edit_reason && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>Edited: {r.last_edit_reason}</div>}
+                  {r.status === "Rejected" && r.remarks && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>{tr("MAO:")} {r.remarks}</div>}
+                  {r.last_edit_reason && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>{tr("Edited:")} {r.last_edit_reason}</div>}
                 </td>
                 <td><InsuredBadge insured={insuredCrops.has(r.crop_name)} /></td>
                 <td style={{ whiteSpace: "nowrap" }}>
-                  {r.pcic_application && <button className="btn-ghost" title="View / Print PCIC form" onClick={() => setScreen({ saved: r.pcic_application })}><i className="fa-solid fa-file-lines"></i></button>}{" "}
-                  <button className="btn-ghost" title="Edit this crop (a reason is required)" aria-label="Edit crop" onClick={() => openEdit(r)}><i className="fa-solid fa-pen-to-square"></i></button>
+                  {r.pcic_application && <button className="btn-ghost" title={tr("View / Print PCIC form")} onClick={() => setScreen({ saved: r.pcic_application })}><i className="fa-solid fa-file-lines"></i></button>}{" "}
+                  <button className="btn-ghost" title={tr("Ask the admin to change this crop (a reason is required)")} aria-label={tr("Request change")} onClick={() => openEdit(r)}><i className="fa-solid fa-file-circle-plus"></i> {tr("Request change")}</button>
                 </td>
               </tr>
             ))}
@@ -125,43 +127,43 @@ export default function FarmerCrops() {
         </table>
       </div>
 
-      <Modal open={!!editRow} onClose={() => setEditRow(null)} title="Edit crop registration" icon="fa-pen-to-square">
+      <Modal open={!!editRow} onClose={() => setEditRow(null)} title={tr("Request crop change")} icon="fa-file-circle-plus">
         {editRow && form && (
           <form className="modal-body" onSubmit={saveEdit}>
-            <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-circle-info"></i> <span>After saving, this crop goes back to <b>Pending</b> until the MAO verifies the corrected details.</span></p>
-            <label>Crop / Plant Name
+            <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-circle-info"></i> <span>{tr("After you send this, the request goes to the")} <b>{tr("admin")}</b> {tr("and the crop goes back to")} <b>{tr("Pending")}</b> {tr("until it is approved.")}</span></p>
+            <label>{tr("Crop / Plant Name")}
               <select value={form.crop} onChange={(e) => setForm({ ...form, crop: e.target.value })}>
                 {CROP_LIST.map((c) => <option key={c} value={c}>{c}</option>)}
-                <option value={OTHER}>Other (specify)</option>
+                <option value={OTHER}>{tr("Other (specify)")}</option>
               </select></label>
-            {form.crop === OTHER && <label>What crop / plant is it? <input value={form.crop_other} onChange={(e) => setForm({ ...form, crop_other: e.target.value })} placeholder="e.g. Squash, Peanut, Taro" required /></label>}
+            {form.crop === OTHER && <label>{tr("What crop / plant is it?")} <input value={form.crop_other} onChange={(e) => setForm({ ...form, crop_other: e.target.value })} placeholder={tr("e.g. Squash, Peanut, Taro")} required /></label>}
             <div style={{ display: "flex", gap: 10 }}>
-              <label style={{ flex: 1 }}>Area (hectares) <input type="number" step="0.01" min="0.01" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} required /></label>
-              <label style={{ flex: 1 }}>Planting date <input type="date" value={form.planting_date} onChange={(e) => setForm({ ...form, planting_date: e.target.value })} required /></label>
+              <label style={{ flex: 1 }}>{tr("Area (hectares)")} <input type="number" step="0.01" min="0.01" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} required /></label>
+              <label style={{ flex: 1 }}>{tr("Planting date")} <input type="date" value={form.planting_date} onChange={(e) => setForm({ ...form, planting_date: e.target.value })} required /></label>
             </div>
-            <label>Variety <input value={form.variety} onChange={(e) => setForm({ ...form, variety: e.target.value })} /></label>
+            <label>{tr("Variety")} <input value={form.variety} onChange={(e) => setForm({ ...form, variety: e.target.value })} /></label>
             <div style={{ display: "flex", gap: 10 }}>
-              <label style={{ flex: 1 }}>Land category
+              <label style={{ flex: 1 }}>{tr("Land category")}
                 <select value={form.land_category} onChange={(e) => setForm({ ...form, land_category: e.target.value })}>
-                  <option value="">—</option>{withCurrent(LAND, editRow.land_category).map((o) => <option key={o}>{o}</option>)}
+                  <option value="">—</option>{withCurrent(LAND, editRow.land_category).map((o) => <option key={o} value={o}>{tr(o)}</option>)}
                 </select></label>
-              <label style={{ flex: 1 }}>Tenurial status
+              <label style={{ flex: 1 }}>{tr("Tenurial status")}
                 <select value={form.tenurial_status} onChange={(e) => setForm({ ...form, tenurial_status: e.target.value })}>
-                  <option value="">—</option>{withCurrent(TENURE, editRow.tenurial_status).map((o) => <option key={o}>{o}</option>)}
+                  <option value="">—</option>{withCurrent(TENURE, editRow.tenurial_status).map((o) => <option key={o} value={o}>{tr(o)}</option>)}
                 </select></label>
             </div>
             <fieldset className="rsbsa-fieldset" style={{ marginTop: 6 }}>
-              <legend>Reason for the change (required)</legend>
-              <label>Why are you changing it?
+              <legend>{tr("Reason for the change (required)")}</legend>
+              <label>{tr("Why are you changing it?")}
                 <select value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} required>
-                  <option value="">Choose a reason…</option>{REASONS.map((o) => <option key={o}>{o}</option>)}
+                  <option value="">{tr("Choose a reason…")}</option>{REASONS.map((o) => <option key={o} value={o}>{tr(o)}</option>)}
                 </select></label>
               <label style={{ marginTop: 8 }}>{form.reason === "Other" ? "Describe the reason" : "More details (optional)"}
-                <textarea rows={2} value={form.details} onChange={(e) => setForm({ ...form, details: e.target.value })} placeholder="e.g. I planted Rice, not Corn" required={form.reason === "Other"} /></label>
+                <textarea rows={2} value={form.details} onChange={(e) => setForm({ ...form, details: e.target.value })} placeholder={tr("e.g. I planted Rice, not Corn")} required={form.reason === "Other"} /></label>
             </fieldset>
             <div className="modal-actions">
-              <button type="button" className="btn-ghost" onClick={() => setEditRow(null)}>Cancel</button>
-              <button type="submit" className="btn-primary" disabled={saving}><i className="fa-solid fa-floppy-disk"></i> {saving ? "Saving…" : "Save changes"}</button>
+              <button type="button" className="btn-ghost" onClick={() => setEditRow(null)}>{tr("Cancel")}</button>
+              <button type="submit" className="btn-primary" disabled={saving}><i className="fa-solid fa-paper-plane"></i> {saving ? "Sending…" : "Send request to admin"}</button>
             </div>
           </form>
         )}

@@ -43,8 +43,27 @@ function Editor({ farmer, edit, initial, associations, onCancel, onSaved }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const errors = Object.fromEntries(errList.map((e) => [e.key, true]));
-  const showErrors = (list) => { setErrList(list); window.scrollTo?.({ top: 0, behavior: "smooth" }); document.querySelector(".content")?.scrollTo?.({ top: 0, behavior: "smooth" }); };
+  // after the first try, a field stays red only until it is filled in
+  const liveErrors = () => {
+    const list = validate(values);
+    if (!edit) {
+      if (!email.trim()) list.unshift({ key: "_email" });
+      if (password.length < 6) list.unshift({ key: "_password" });
+    }
+    return list;
+  };
+  const errors = Object.fromEntries((errList.length ? liveErrors() : []).map((e) => [e.key, true]));
+  const showErrors = (list) => {
+    setErrList(list);
+    // no message list: the fields that still need filling in turn red; jump to the first one
+    setTimeout(() => {
+      const el = document.querySelector(".rp .bad, .rp-account .bad");
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      const f = el.matches("input,select,textarea") ? el : el.querySelector("input,select,textarea");
+      f?.focus?.({ preventScroll: true });
+    }, 80);
+  };
 
   function cancel() { if (confirm("Close the form without saving?")) onCancel(); }
   function clearForm() { if (confirm("Clear all entries in this form?")) { setValues(emptyValues()); setErrList([]); } }
@@ -119,11 +138,6 @@ function Editor({ farmer, edit, initial, associations, onCancel, onSaved }) {
         </div>
       )}
 
-      {errList.length > 0 && (
-        <div className="rp-errs"><b>Please complete the required information:</b>
-          <ul>{errList.map((e) => <li key={e.key}>{e.msg}</li>)}</ul>
-        </div>
-      )}
 
       <RsbsaPaper values={values} setValues={setValues} errors={errors} photoUrl={farmer?.photo_url} />
 

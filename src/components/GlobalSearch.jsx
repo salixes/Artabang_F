@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext.jsx";
 import { NAV } from "./Sidebar.jsx";
+import { tr } from "../lib/i18n";
 
 // Where each kind of result opens, per role. A role only searches what it has a page for.
 const ROUTES = {
@@ -195,19 +196,19 @@ export default function GlobalSearch() {
         onChange={(e) => { setValue(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         onKeyDown={onKeyDown}
-        placeholder="Search farmers, crops, assistance records…"
-        aria-label="Search"
+        placeholder={tr("Search farmers, crops, assistance records…")}
+        aria-label={tr("Search")}
         autoComplete="off"
       />
-      {value && <button type="button" className="search-clear" onClick={() => { setValue(""); setOpen(false); }} aria-label="Clear search"><i className="fa-solid fa-xmark"></i></button>}
+      {value && <button type="button" className="search-clear" onClick={() => { setValue(""); setOpen(false); }} aria-label={tr("Clear search")}><i className="fa-solid fa-xmark"></i></button>}
 
       {open && value.trim() && (
         <div className="search-panel" role="listbox">
-          {term.length < 2 && <p className="search-note">Type at least 2 characters to search.</p>}
-          {term.length >= 2 && state.status === "loading" && <p className="search-note"><i className="fa-solid fa-spinner fa-spin"></i> Searching…</p>}
-          {term.length >= 2 && state.status === "done" && state.failedAll && <p className="search-note">Search isn't available right now. Please try again.</p>}
+          {term.length < 2 && <p className="search-note">{tr("Type at least 2 characters to search.")}</p>}
+          {term.length >= 2 && state.status === "loading" && <p className="search-note"><i className="fa-solid fa-spinner fa-spin"></i> {tr("Searching…")}</p>}
+          {term.length >= 2 && state.status === "done" && state.failedAll && <p className="search-note">{tr("Search isn't available right now. Please try again.")}</p>}
           {term.length >= 2 && state.status === "done" && !state.failedAll && state.groups.length === 0 && (
-            <p className="search-note"><b>“{value.trim()}”</b> is not in the system.<br /><span>Try another name, crop, or assistance type.</span></p>
+            <p className="search-note"><b>“{value.trim()}”</b> {tr("is not in the system.")}<br /><span>{tr("Try another name, crop, or assistance type.")}</span></p>
           )}
           {term.length >= 2 && state.status === "done" && state.groups.map((g) => (
             <div key={g.key}>
