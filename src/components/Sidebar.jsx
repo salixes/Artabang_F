@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { tr } from "../lib/i18n";
+import "./sidebarSpacing.css";
 
 export const NAV = {
   farmer: [

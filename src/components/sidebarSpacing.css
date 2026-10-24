@@ -1,0 +1,43 @@
+/* Sidebar: every row has the same height, spacing, icon box and font — easy on the eyes.
+   (A group such as "Assistance Distribution" looks exactly like any other item.) */
+.sidebar .side-nav{gap:4px;}
+
+.sidebar .side-nav a.nav-link{
+  display:flex;align-items:center;gap:14px;
+  min-height:44px;padding:0 14px;box-sizing:border-box;
+  border-radius:12px;
+  font-size:.92rem;font-weight:500;line-height:1.25;letter-spacing:.01em;
+  color:rgba(255,255,255,.84);
+  transform:none;                                   /* no sideways jump on hover */
+}
+.sidebar .side-nav a.nav-link i:not(.nav-caret){
+  flex:none;width:24px;height:24px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:1.02rem;line-height:1;text-align:center;
+}
+.sidebar .side-nav a.nav-link span{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+.sidebar .side-nav a.nav-link:hover{background:rgba(255,255,255,.08);color:#fff;transform:none;}
+.sidebar .side-nav a.nav-link.active{color:var(--gold-light);}
+.sidebar .side-nav a.nav-logout{margin-top:0;color:#f2b6b6;}
+.sidebar .side-nav a.nav-logout:hover{color:#ffd0d0;}
+
+/* group header = same row as the others; caret on the right */
+.sidebar .side-nav .nav-group{margin:0;gap:0;}
+.sidebar .side-nav a.nav-link .nav-caret{margin-left:auto;font-size:.7rem;opacity:.75;width:auto;height:auto;}
+
+/* sub-menu: fully collapsed when closed (no hidden padding / margin / border), tidy when open */
+.sidebar .side-nav .nav-submenu{
+  padding:0;margin:0 0 0 26px;border-left-width:0;gap:2px;
+}
+.sidebar .side-nav .nav-submenu.open{
+  padding:4px 0 2px 0;margin:4px 0 0 26px;border-left:2px solid rgba(255,255,255,.14);
+}
+.sidebar .side-nav a.nav-link.nav-sublink{
+  min-height:38px;padding:0 14px;font-size:.86rem;font-weight:500;color:rgba(255,255,255,.74);
+}
+.sidebar .side-nav a.nav-link.nav-sublink:hover{color:#fff;}
+.sidebar .side-nav a.nav-link.nav-sublink.active{color:var(--gold-light);font-weight:600;}
+
+/* collapsed (icons only) */
+.sidebar.collapsed .side-nav a.nav-link{padding:0;gap:0;justify-content:center;}
+.sidebar.collapsed .side-nav a.nav-link span{display:none;}

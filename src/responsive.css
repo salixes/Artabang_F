@@ -1,0 +1,99 @@
+/* ==========================================================================
+   Responsive layer: the same system fits a phone, a tablet and a laptop.
+   Loaded after index.css, so these rules refine the existing ones.
+   Breakpoints: 1100 (small laptop) · 860 (tablet / phone: menu becomes a drawer)
+                640 (phone) · 400 (small phone)
+   ========================================================================== */
+
+/* ---- everywhere ---- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+img,svg,video,canvas{max-width:100%;}
+.app{min-height:100vh;min-height:100dvh;}
+.content{width:100%;max-width:1600px;margin-inline:auto;}        /* readable on very wide screens */
+.panel p,.announce-grid p,.notif-item p,.pd-list b,.detail-list b{overflow-wrap:anywhere;}
+.table-panel{-webkit-overflow-scrolling:touch;}
+
+/* ---- laptop / small laptop ---- */
+@media (max-width:1100px){
+  .content{padding:22px;}
+}
+
+/* ---- tablet + phone: the menu is a drawer ---- */
+@media (max-width:860px){
+  .sidebar{height:100vh;height:100dvh;max-width:86vw;overflow-y:auto;}
+  .topbar{gap:10px;padding:10px 14px;}
+  .topbar-search{min-width:0;padding:8px 12px;}
+  .topbar-search input{min-width:0;}
+  .avatar-name{display:none;}
+
+  /* pop-ups from the top bar become full-width sheets under it */
+  .notif-panel,.avatar-menu,.search-panel{
+    position:fixed;top:64px;left:12px;right:12px;width:auto;
+    max-height:calc(100vh - 90px);max-height:calc(100dvh - 90px);overflow-y:auto;
+  }
+
+  /* wide tables scroll sideways inside their card, with a soft edge showing there is more */
+  .table-panel{
+    background:
+      linear-gradient(to right,var(--white) 30%,rgba(255,255,255,0)),
+      linear-gradient(to right,rgba(255,255,255,0),var(--white) 70%) 100% 0,
+      radial-gradient(farthest-side at 0 50%,rgba(0,0,0,.14),rgba(0,0,0,0)),
+      radial-gradient(farthest-side at 100% 50%,rgba(0,0,0,.14),rgba(0,0,0,0)) 100% 0;
+    background-repeat:no-repeat;background-color:var(--white);
+    background-size:40px 100%,40px 100%,14px 100%,14px 100%;
+    background-attachment:local,local,scroll,scroll;
+  }
+
+  .view-head{gap:10px;}
+  .view-head > *{max-width:100%;}
+  .head-actions{display:flex;flex-wrap:wrap;gap:8px;}
+  .filter-select{max-width:100%;}
+
+  /* filter dropdowns (Assistance Management) use the full row */
+  .fd-row{gap:8px;}
+  .fd{flex:1 1 220px;}
+  .fd-btn{width:100%;justify-content:space-between;}
+  .fd-menu{width:100%;max-width:none;}
+}
+
+/* ---- phone ---- */
+@media (max-width:640px){
+  .content{padding:14px;}
+  .panel{padding:16px;}
+  .data-table th,.data-table td{padding:10px;}
+  .profile-card{padding:18px;gap:16px;}
+
+  /* windows (modals) fit the screen and scroll inside */
+  .modal-overlay{padding:10px;}
+  .modal{max-width:100% !important;max-height:calc(100vh - 20px);max-height:calc(100dvh - 20px);}
+  .modal-body{padding:16px;}
+  .modal-actions{flex-wrap:wrap;}
+  .modal-actions > button{flex:1 1 auto;}
+
+  /* easy to tap, and no automatic zoom when typing on iPhone */
+  input,select,textarea{font-size:16px;}
+  .btn-primary,.btn-ghost{min-height:42px;}
+  .icon-btn{width:42px;height:42px;}
+
+  .kind-tabs{gap:6px;}
+  .rel-who-scroll{max-height:240px;}
+  .toast{left:12px;right:12px;bottom:16px;transform:translateY(20px);justify-content:center;}
+  .toast.show{transform:translateY(0);}
+
+  /* dashboard number cards stay two across */
+  .stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+  .stat-card{padding:14px;}
+  .stat-num{font-size:1.6rem;}
+  .announce-grid,.farmer-grid{grid-template-columns:minmax(0,1fr);}
+}
+
+/* ---- small phone ---- */
+@media (max-width:400px){
+  .stat-grid{grid-template-columns:minmax(0,1fr);}
+  .topbar{gap:8px;padding:8px 10px;}
+}
+
+/* ---- short screens (phone on its side) ---- */
+@media (max-height:640px){
+  .sidebar-foot{display:none;}
+}
