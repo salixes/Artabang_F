@@ -9,6 +9,7 @@ import { LanguageProvider } from "./context/LanguageContext.jsx";
 import { hasSupabaseEnv } from "./lib/supabaseClient";
 import "./index.css";
 import "./form-borders.css";
+import "./responsive.css";
 
 // Shown instead of a blank white page when the .env file is missing.
 function MissingEnv() {
