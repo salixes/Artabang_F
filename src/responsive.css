@@ -13,6 +13,18 @@ img,svg,video,canvas{max-width:100%;}
 .panel p,.announce-grid p,.notif-item p,.pd-list b,.detail-list b{overflow-wrap:anywhere;}
 .table-panel{-webkit-overflow-scrolling:touch;}
 
+/* --- the two things that made some pages wider than a phone (so the phone zoomed out) ---
+   1) the grey/yellow info line at the top of many pages was a flex row: every bold word and
+      every piece of text became its own non-wrapping column. It is now normal wrapping text.
+   2) cards inside grids could not shrink below the width of the table they hold.          */
+.hint-text{display:block;}
+.hint-text > i{margin-right:6px;}
+.content,.content > section{min-width:0;}
+.dash-grid > *,.announce-grid > *,.program-grid > *,.farmer-grid > *,.al-stats > *,.rel-card-grid > *{min-width:0;}
+.panel,.table-panel{min-width:0;max-width:100%;}
+/* safety net: whatever is still too wide can never make the whole page wider than the screen */
+.content{overflow-x:clip;}
+
 /* ---- laptop / small laptop ---- */
 @media (max-width:1100px){
   .content{padding:22px;}
@@ -20,6 +32,7 @@ img,svg,video,canvas{max-width:100%;}
 
 /* ---- tablet + phone: the menu is a drawer ---- */
 @media (max-width:860px){
+  .dash-grid{grid-template-columns:minmax(0,1fr);}
   .sidebar{height:100vh;height:100dvh;max-width:86vw;overflow-y:auto;}
   .topbar{gap:10px;padding:10px 14px;}
   .topbar-search{min-width:0;padding:8px 12px;}
