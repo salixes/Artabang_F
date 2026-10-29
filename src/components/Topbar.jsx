@@ -22,7 +22,7 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
   const [langOpen, setLangOpen] = useState(false);
   const { lang, languages, chooseLanguage } = useLanguage();
   const [notifications, setNotifications] = useState([]);
-  const [shown, setShown] = useState([]);          // the new notifications listed when the bell is opened
+  const [freshIds, setFreshIds] = useState(() => new Set()); // which notifications were new when the bell was opened
   const [notifHover, setNotifHover] = useState(false);
   const [notifPulse, setNotifPulse] = useState(0); // bump = restart the 5-second countdown
 
@@ -39,7 +39,7 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
       .select("*")
       .eq("recipient_id", profile.id)
       .order("created_at", { ascending: false })
-      .limit(10)
+      .limit(100)
       .then(({ data }) => { if (active) setNotifications(data || []); });
 
     const channel = supabase
@@ -50,7 +50,7 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
 
     // fallback: re-check every 30 s in case the live connection is off
     const poll = setInterval(() => {
-      supabase.from("notifications").select("*").eq("recipient_id", profile.id).order("created_at", { ascending: false }).limit(10)
+      supabase.from("notifications").select("*").eq("recipient_id", profile.id).order("created_at", { ascending: false }).limit(100)
         .then(({ data }) => { if (active && data) setNotifications(data); });
     }, 30000);
 
@@ -76,15 +76,15 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
     setAvatarOpen(false);
     if (notifOpen) return setNotifOpen(false);
     const fresh = notifications.filter((n) => !n.read);
-    setShown(fresh);
+    setFreshIds(new Set(fresh.map((n) => n.id)));
     setNotifHover(false);
     setNotifOpen(true);
     if (fresh.length) markAllRead();
   }
   function openNotif(n) {
-    const to = notificationPath(n, role) || `/${role}/notifications`;
+    const to = notificationPath(n, role);
     setNotifOpen(false);
-    navigate(to);
+    if (to) navigate(to); // opens the panel it belongs to
   }
 
   return (
@@ -121,16 +121,15 @@ export default function Topbar({ onOpenMobileMenu, roleLabel, profilePath }) {
               onMouseEnter={() => setNotifHover(true)} onMouseLeave={() => setNotifHover(false)}
               onTouchStart={() => setNotifPulse((p) => p + 1)} onScroll={() => setNotifPulse((p) => p + 1)}
             >
-              <h4>{tr("New notifications")}</h4>
-              {shown.length === 0 && <p className="hint-text">{tr("No new notifications.")}</p>}
-              {shown.map((n) => (
-                <div className="notif-item" key={n.id} onClick={() => openNotif(n)}>
+              <h4>{tr("Notifications")}</h4>
+              {notifications.length === 0 && <p className="hint-text">{tr("No notifications yet.")}</p>}
+              {notifications.map((n) => (
+                <div className={`notif-item ${freshIds.has(n.id) ? "is-new" : ""}`} key={n.id} onClick={() => openNotif(n)} style={{ cursor: notificationPath(n, role) ? "pointer" : "default" }}>
                   <i className={`fa-solid ${n.icon || "fa-bell"} gold`}></i>
                   <p dangerouslySetInnerHTML={{ __html: n.message }} />
                   <small>{new Date(n.created_at).toLocaleString("en-PH")}</small>
                 </div>
               ))}
-              <button type="button" className="notif-all" onClick={() => { setNotifOpen(false); navigate(`/${role}/notifications`); }}>{tr("See all notifications")}</button>
             </div>
           )}
         </div>

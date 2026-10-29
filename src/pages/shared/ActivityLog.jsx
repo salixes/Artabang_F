@@ -3,6 +3,9 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getDeviceInfo } from "../../lib/device";
 import { tr } from "../../lib/i18n";
+import { useNavigate } from "react-router-dom";
+import { currentSessionKey } from "../../lib/sessions";
+import "../../components/sessionList.css";
 
 /* ---------------------------------------------------------------- helpers */
 const ACTION_META = {
@@ -17,9 +20,10 @@ const KIND_OPTIONS = [
   { v: "auth", l: "Sign-ins & sign-outs" },
   { v: "login_failed", l: "Failed sign-ins" },
   { v: "action", l: "Actions" },
+  { v: "session", l: "Session actions" },
   { v: "page_view", l: "Pages opened" },
 ];
-const kindMatch = (r, kind) => kind === "all" || (kind === "auth" ? r.action === "login" || r.action === "logout" : r.action === kind);
+const kindMatch = (r, kind) => kind === "all" || (kind === "auth" ? r.action === "login" || r.action === "logout" : kind === "session" ? r.category === "session" : r.action === kind);
 const deviceIcon = (t) => (t === "Mobile" ? "fa-mobile-screen" : t === "Tablet" ? "fa-tablet-screen-button" : "fa-desktop");
 const fmt = (d) => new Date(d).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 function ago(d) {
@@ -33,7 +37,7 @@ const newestFirst = (list) => [...list].sort((a, b) => new Date(b.created_at) - 
 const startOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
 
 function ActionBadge({ r }) {
-  const m = ACTION_META[r.action] || ACTION_META.action;
+  const m = r.category === "session" ? { label: "Session action", icon: "fa-user-lock", tone: "warn" } : (ACTION_META[r.action] || ACTION_META.action);
   return <span className={`al-badge ${m.tone}`}><i className={`fa-solid ${m.icon}`}></i> {m.label}</span>;
 }
 function DeviceCell({ r }) {
@@ -54,6 +58,124 @@ function What({ r }) {
   );
 }
 
+/* --------------------------------------------- user log + sessions (all roles) */
+const END_TEXT = { logout: "Signed out", terminated: "Terminated by you", logout_all: "Logged out all devices", admin: "Terminated by admin" };
+const isAuthRow = (r) => r.action === "login" || r.action === "logout" || r.action === "login_failed" || r.category === "session";
+function actionTaken(r) {
+  if (r.category === "session") return r.description || "Session action";
+  if (r.action === "login") return r.is_new_device ? "Signed in from a new device" : "Signed in";
+  if (r.action === "logout") return "Signed out";
+  if (r.action === "login_failed") return "Sign-in refused (wrong password)";
+  return "—";
+}
+
+// who signed in / out, from which device, and the action taken
+function UserLogTable({ rows, showUser = false, showIp = false, shown, onMore }) {
+  const cols = 4 + (showUser ? 1 : 0) + (showIp ? 1 : 0);
+  return (
+    <>
+      <div className="table-panel">
+        <table className="data-table">
+          <thead><tr><th>{tr("When")}</th>{showUser && <th>{tr("User")}</th>}<th>{tr("Event")}</th><th>{tr("Device")}</th>{showIp && <th>{tr("IP address")}</th>}<th>{tr("Action taken")}</th></tr></thead>
+          <tbody>
+            {rows.length === 0 && <tr><td colSpan={cols} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No sign-in or session entries.")}</td></tr>}
+            {rows.slice(0, shown).map((r) => (
+              <tr key={r.id}>
+                <td style={{ whiteSpace: "nowrap" }}>{fmt(r.created_at)}<small style={{ display: "block", color: "var(--ink-soft)" }}>{ago(r.created_at)}</small></td>
+                {showUser && <td><b>{r.name}</b><small style={{ display: "block", color: "var(--ink-soft)", textTransform: "capitalize" }}>{r.role}</small></td>}
+                <td><ActionBadge r={r} />{r.is_new_device && <span className="al-badge warn"><i className="fa-solid fa-circle-exclamation"></i> {tr("New device")}</span>}</td>
+                <td><DeviceCell r={r} /></td>
+                {showIp && <td style={{ fontFamily: "monospace", fontSize: ".78rem" }}>{r.ip_address || "—"}</td>}
+                <td>{tr(actionTaken(r))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rows.length > shown && <div style={{ textAlign: "center", marginTop: 12 }}><button className="btn-ghost" onClick={onMore}>{tr("Show more (")}{rows.length - shown} {tr("more)")}</button></div>}
+    </>
+  );
+}
+
+// Your own sessions: terminate one, terminate the others, or log out of every device
+function SessionsPanel() {
+  const { profile, logout } = useAuth();
+  const navigate = useNavigate();
+  const [sessions, setSessions] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const myKey = currentSessionKey();
+
+  async function load() {
+    const { data, error } = await supabase.from("user_sessions").select("*").eq("user_id", profile.id).order("created_at", { ascending: false }).limit(30);
+    setSessions(error ? [] : data || []);
+  }
+  useEffect(() => { if (profile?.id) load(); }, [profile?.id]);
+
+  async function run(fn, doneNote) {
+    setBusy(true); setNote("");
+    const { error } = await fn();
+    setBusy(false);
+    if (error) return setNote(error.message);
+    setNote(doneNote);
+    load();
+  }
+  const terminate = (s) => confirm(tr("Terminate this session? That device will be signed out within about 20 seconds.")) && run(() => supabase.rpc("terminate_session", { p_id: s.id }), tr("Session terminated."));
+  const terminateOthers = () => confirm(tr("Terminate every other session? Only this device stays signed in.")) && run(() => supabase.rpc("terminate_other_sessions", { p_keep: myKey }), tr("Other sessions terminated."));
+  async function logoutAll() {
+    if (!confirm(tr("Log out of ALL devices, including this one?"))) return;
+    setBusy(true);
+    const { error } = await supabase.rpc("logout_all_devices");
+    if (error) { setBusy(false); return setNote(error.message); }
+    await supabase.auth.signOut({ scope: "global" });
+    navigate("/login");
+  }
+  async function logoutHere() { await logout(); navigate("/login"); }
+
+  const active = (sessions || []).filter((s) => !s.ended_at);
+  return (
+    <div className="panel" style={{ marginBottom: 18 }}>
+      <div className="panel-head">
+        <h3><i className="fa-solid fa-user-lock"></i> {tr("Sessions & devices")}</h3>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn-ghost" disabled={busy || active.filter((s) => s.session_key !== myKey).length === 0} onClick={terminateOthers}><i className="fa-solid fa-ban"></i> {tr("Terminate other sessions")}</button>
+          <button className="btn-primary" disabled={busy} onClick={logoutAll}><i className="fa-solid fa-right-from-bracket"></i> {tr("Log out all devices")}</button>
+        </div>
+      </div>
+      {note && <p className="hint-text" style={{ margin: "0 4px 10px" }}><i className="fa-solid fa-circle-info"></i> {note}</p>}
+      {sessions === null ? (
+        <p className="hint-text" style={{ margin: "0 4px" }}><i className="fa-solid fa-spinner fa-spin"></i> {tr("Loading sessions…")}</p>
+      ) : sessions.length === 0 ? (
+        <p className="hint-text" style={{ margin: "0 4px" }}>{tr("Sessions are listed here from your next sign-in.")}</p>
+      ) : (
+        <div className="al-sessions">
+          {sessions.map((s) => {
+            const here = s.session_key === myKey;
+            return (
+              <div className="al-session" key={s.id}>
+                <div>
+                  <DeviceCell r={s} />
+                  <span className="al-s-meta">{tr("Signed in")} {fmt(s.created_at)} · {tr("last active")} {ago(s.last_seen_at)}</span>
+                </div>
+                <div className="al-s-status">
+                  {s.ended_at
+                    ? <><span className="al-badge info"><i className="fa-solid fa-circle-xmark"></i> {tr(END_TEXT[s.end_reason] || "Ended")}</span><small>{fmt(s.ended_at)}</small></>
+                    : here ? <span className="al-badge ok"><i className="fa-solid fa-circle-check"></i> {tr("This device")}</span> : <span className="al-badge ok">{tr("Active")}</span>}
+                </div>
+                <div className="al-s-act">
+                  {!s.ended_at && (here
+                    ? <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: ".74rem" }} onClick={logoutHere}>{tr("Log out")}</button>
+                    : <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: ".74rem", color: "var(--danger)" }} disabled={busy} onClick={() => terminate(s)}>{tr("Terminate session")}</button>)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------------------------- farmer / president view */
 function MyActivityLog() {
   const { profile } = useAuth();
@@ -63,6 +185,8 @@ function MyActivityLog() {
   const [to, setTo] = useState("");
   const [search, setSearch] = useState("");
   const [shown, setShown] = useState(100);
+  const [tab, setTab] = useState("activity");
+  const [logShown, setLogShown] = useState(50);
   const thisDevice = getDeviceInfo().device_key;
 
   useEffect(() => {
@@ -108,6 +232,8 @@ function MyActivityLog() {
         <div className={`al-stat ${failed30 ? "bad" : ""}`}><b>{failed30}</b><span>{tr("Failed sign-in attempts (30 days)")}</span></div>
       </div>
 
+      <SessionsPanel />
+
       <div className="panel" style={{ marginBottom: 18 }}>
         <div className="panel-head"><h3><i className="fa-solid fa-laptop-mobile"></i> {tr("Devices that signed in to your account")}</h3></div>
         <div className="table-panel no-shadow">
@@ -127,6 +253,14 @@ function MyActivityLog() {
         </div>
       </div>
 
+      <div className="al-tabs" role="tablist">
+        <button className={tab === "activity" ? "on" : ""} onClick={() => setTab("activity")}>{tr("Activity")}</button>
+        <button className={tab === "userlog" ? "on" : ""} onClick={() => setTab("userlog")}>{tr("User log")}</button>
+      </div>
+
+      {tab === "userlog" && <UserLogTable rows={rows.filter(isAuthRow)} shown={logShown} onMore={() => setLogShown(logShown + 50)} />}
+
+      {tab === "activity" && (<>
       <div className="al-filters">
         <select className="filter-select" value={kind} onChange={(e) => setKind(e.target.value)} aria-label={tr("Type")}>{KIND_OPTIONS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}</select>
         <label className="al-date">{tr("From")} <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
@@ -149,6 +283,7 @@ function MyActivityLog() {
         </table>
       </div>
       {filtered.length > shown && <div style={{ textAlign: "center", marginTop: 12 }}><button className="btn-ghost" onClick={() => setShown(shown + 100)}>{tr("Show more (")}{filtered.length - shown} {tr("left)")}</button></div>}
+      </>)}
     </section>
   );
 }
@@ -168,6 +303,9 @@ function AdminActivityLog() {
   const [devF, setDevF] = useState("all");
   const [search, setSearch] = useState("");
   const [shown, setShown] = useState(150);
+  const [openSessions, setOpenSessions] = useState([]); // every signed-in session right now
+  const [logShown, setLogShown] = useState(100);
+  const [termBusy, setTermBusy] = useState(false);
 
   useEffect(() => {
     setRows(null);
@@ -181,6 +319,20 @@ function AdminActivityLog() {
       setRows(newestFirst(logs || []));
     })();
   }, [days]);
+
+  const loadSessions = async () => {
+    const { data } = await supabase.from("user_sessions").select("id, user_id, last_seen_at").is("ended_at", null);
+    setOpenSessions(data || []);
+  };
+  useEffect(() => { loadSessions(); }, []);
+  async function endUserSessions(u) {
+    if (!confirm(`${tr("End every session of")} ${u.name}? ${tr("Every device they are signed in on will be signed out within about 20 seconds.")}`)) return;
+    setTermBusy(true);
+    const { error } = await supabase.rpc("admin_terminate_user_sessions", { p_user: u.id });
+    setTermBusy(false);
+    if (error) return alert(error.message);
+    loadSessions();
+  }
 
   const named = useMemo(() => (rows || []).map((r) => ({ ...r, name: people[r.user_id]?.full_name || "Unknown user", email: people[r.user_id]?.email || "" })), [rows, people]);
 
@@ -260,6 +412,7 @@ function AdminActivityLog() {
         <div className="al-tabs" role="tablist">
           <button className={tab === "activity" ? "on" : ""} onClick={() => setTab("activity")}>{tr("All activity")}</button>
           <button className={tab === "users" ? "on" : ""} onClick={() => setTab("users")}>{tr("Users (")}{users.length})</button>
+          <button className={tab === "userlog" ? "on" : ""} onClick={() => setTab("userlog")}>{tr("User log")}</button>
           <button className={tab === "security" ? "on" : ""} onClick={() => setTab("security")}>{tr("Security alerts")}{stats.failed + stats.newDev > 0 ? ` (${stats.failed + stats.newDev})` : ""}</button>
         </div>
       </div>
@@ -297,9 +450,9 @@ function AdminActivityLog() {
       {tab === "users" && (
         <div className="table-panel">
           <table className="data-table">
-            <thead><tr><th>{tr("User")}</th><th>{tr("Last seen")}</th><th>{tr("Last device")}</th><th>{tr("Last IP")}</th><th>{tr("Sign-ins")}</th><th>{tr("Devices")}</th><th>{tr("Failed")}</th><th>{tr("Events")}</th><th></th></tr></thead>
+            <thead><tr><th>{tr("User")}</th><th>{tr("Last seen")}</th><th>{tr("Last device")}</th><th>{tr("Last IP")}</th><th>{tr("Sign-ins")}</th><th>{tr("Devices")}</th><th>{tr("Failed")}</th><th>{tr("Signed in now")}</th><th>{tr("Events")}</th><th></th></tr></thead>
             <tbody>
-              {users.length === 0 && <tr><td colSpan={9} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No activity in this range.")}</td></tr>}
+              {users.length === 0 && <tr><td colSpan={10} style={{ textAlign: "center", color: "var(--ink-soft)" }}>{tr("No activity in this range.")}</td></tr>}
               {users.map((u) => (
                 <tr key={u.id}>
                   <td><b>{u.name}</b><small style={{ display: "block", color: "var(--ink-soft)", textTransform: "capitalize" }}>{u.role}</small></td>
@@ -308,6 +461,17 @@ function AdminActivityLog() {
                   <td style={{ fontFamily: "monospace", fontSize: ".78rem" }}>{u.lastIp || "—"}</td>
                   <td>{u.logins}</td><td>{u.devices.size}</td>
                   <td style={{ color: u.failed ? "var(--danger)" : undefined, fontWeight: u.failed ? 700 : 400 }}>{u.failed}</td>
+                  <td>
+                    {(() => {
+                      const n = openSessions.filter((x) => x.user_id === u.id).length;
+                      return n === 0 ? <span style={{ color: "var(--ink-soft)" }}>—</span> : (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <span className="al-badge ok">{n}</span>
+                          <button className="btn-ghost" style={{ padding: "3px 8px", fontSize: ".7rem", color: "var(--danger)" }} disabled={termBusy} onClick={() => endUserSessions(u)}>{tr("Terminate sessions")}</button>
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td>{u.events}</td>
                   <td><button className="btn-ghost" style={{ padding: "4px 10px", fontSize: ".72rem" }} onClick={() => openUser(u.id)}>{tr("View log")}</button></td>
                 </tr>
@@ -315,6 +479,20 @@ function AdminActivityLog() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {tab === "userlog" && (
+        <>
+          <SessionsPanel />
+          <div className="al-filters no-print">
+            <select className="filter-select" value={userF} onChange={(e) => setUserF(e.target.value)} aria-label={tr("User")}><option value="all">{tr("All users")}</option>{userOptions.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select>
+            <div className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={tr("Search name, IP…")} /></div>
+          </div>
+          <UserLogTable
+            showUser showIp shown={logShown} onMore={() => setLogShown(logShown + 100)}
+            rows={named.filter((r) => isAuthRow(r) && (userF === "all" || r.user_id === userF) && (!search.trim() || `${r.name} ${r.email} ${r.ip_address} ${r.browser} ${r.os}`.toLowerCase().includes(search.trim().toLowerCase())))}
+          />
+        </>
       )}
 
       {tab === "security" && (

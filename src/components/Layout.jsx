@@ -6,6 +6,7 @@ import Topbar from "./Topbar.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { tr } from "../lib/i18n";
 import "./backBar.css";
+import { useSessionGuard } from "../lib/sessions";
 
 const ROLE_LABEL = { farmer: "Registered Farmer", admin: "MAO Personnel", president: "Association President" };
 const PROFILE_PATH = { farmer: "/farmer/profile", admin: "/admin/profile", president: "/president/profile" };
@@ -32,6 +33,7 @@ function BackBar({ role }) {
 }
 
 export default function Layout({ role }) {
+  useSessionGuard(); // registers this device's session; signs out if it was terminated elsewhere
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { logout } = useAuth();

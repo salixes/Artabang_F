@@ -7,13 +7,7 @@ import "./sidebarSpacing.css";
 export const NAV = {
   farmer: [
     { to: "/farmer", label: "Dashboard", icon: "fa-seedling", end: true },
-    {
-      group: "Notifications", icon: "fa-bell",
-      items: [
-        { to: "/farmer/notifications", label: "Notifications" },
-        { to: "/farmer/announcements", label: "Announcements" },
-      ],
-    },
+    { to: "/farmer/announcements", label: "Announcements", icon: "fa-bullhorn" },
     { to: "/farmer/profile", label: "My Profile", icon: "fa-id-card" },
     { to: "/farmer/rsbsa", label: "RSBSA Enrollment", icon: "fa-file-signature" },
     { to: "/farmer/crops", label: "Crop Registration", icon: "fa-tractor" },
@@ -31,13 +25,7 @@ export const NAV = {
   ],
   admin: [
     { to: "/admin", label: "Dashboard", icon: "fa-chart-line", end: true },
-    {
-      group: "Notifications", icon: "fa-bell",
-      items: [
-        { to: "/admin/notifications", label: "Notifications" },
-        { to: "/admin/announcements", label: "Announcements" },
-      ],
-    },
+    { to: "/admin/announcements", label: "Announcements", icon: "fa-bullhorn" },
     { to: "/admin/farmers", label: "Farmer Profiling", icon: "fa-people-group" },
     { to: "/admin/rsbsa-validation", label: "RSBSA Validation", icon: "fa-file-circle-check" },
     { to: "/admin/assistance", label: "Assistance Management", icon: "fa-hand-holding-dollar" },
@@ -56,7 +44,6 @@ export const NAV = {
   ],
   president: [
     { to: "/president", label: "Dashboard", icon: "fa-chart-line", end: true },
-    { to: "/president/notifications", label: "Notifications", icon: "fa-bell" },
     { to: "/president/association", label: "Membership Management", icon: "fa-people-group" },
     { to: "/president/farmers-profile", label: "Farmers Profile", icon: "fa-users" },
     { to: "/president/crops", label: "Crop/Plants Registered", icon: "fa-tractor" },

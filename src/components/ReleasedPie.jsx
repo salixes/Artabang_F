@@ -161,6 +161,59 @@ function WhoList({ records, directory, isFarmer, tab, setTab, onOpen }) {
   );
 }
 
+const TYPE_COLORS = { "Cash Aid": "#2F6B45", Seeds: "#7BAE5B", Fertilizer: "#C9A227", "Farming Equipment": "#3B82C4", "Crop Insurance": "#8E5CC2", "Other Support Program": "#8A8F98" };
+
+// Pie chart: which TYPES of assistance (cash, seeds, fertilizer ...). Staff can switch between
+// what was already released and all requests; a farmer sees his/her own released ones.
+function TypePie({ records, isFarmer }) {
+  const [basis, setBasis] = useState("Released");
+  const list = isFarmer || basis === "Released" ? records.filter((r) => r.status === "Released") : records;
+  const slices = useMemo(() => {
+    const m = {};
+    list.forEach((r) => { m[r.assistance_type] = (m[r.assistance_type] || 0) + 1; });
+    const entries = Object.entries(m).sort((a, b) => b[1] - a[1]);
+    const total = entries.reduce((a, [, n]) => a + n, 0);
+    let angle = 0;
+    return entries.map(([type, count]) => {
+      const sweep = total ? (count / total) * 360 : 0;
+      const s = { type, count, pct: total ? (count / total) * 100 : 0, from: angle, to: angle + sweep, color: TYPE_COLORS[type] || "#9AA5A0" };
+      angle += sweep;
+      return s;
+    });
+  }, [list]);
+  const total = slices.reduce((a, s) => a + s.count, 0);
+  return (
+    <div className="rel-who-list">
+      <h5><i className="fa-solid fa-chart-pie"></i> {tr("Types of assistance")}</h5>
+      {!isFarmer && (
+        <div className="rel-who-tabs" role="tablist">
+          {["Released", "All requests"].map((b) => (
+            <button type="button" key={b} role="tab" aria-selected={basis === b} className={`rel-who-tab ${basis === b ? "on" : ""}`} onClick={() => setBasis(b)}>{tr(b)}</button>
+          ))}
+        </div>
+      )}
+      {total === 0 ? (
+        <p className="rel-who-empty">{tr("No assistance to show yet.")}</p>
+      ) : (
+        <div className="rel-pie-body">
+          <svg viewBox="0 0 200 200" width="170" height="170" role="img" aria-label={tr("Types of assistance")} className="rel-pie-svg">
+            {slices.map((s) => {
+              if (s.pct >= 99.999) return <circle key={s.type} cx={C} cy={C} r={R} fill={s.color} />;
+              const [x0, y0] = pt(s.from), [x1, y1] = pt(s.to);
+              return <path key={s.type} d={`M${C},${C} L${x0},${y0} A${R},${R} 0 ${s.to - s.from > 180 ? 1 : 0} 1 ${x1},${y1} Z`} fill={s.color} stroke="#fff" strokeWidth="1.5" />;
+            })}
+          </svg>
+          <div className="rel-pie-side">
+            <ul className="rel-pie-legend">
+              {slices.map((s) => <li key={s.type}><i style={{ background: s.color }}></i><span>{tr(s.type)}</span><b>{s.count}</b><em>{Math.round(s.pct)}%</em></li>)}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Dashboard card. Admin: everyone. President: only members of the association.
 // Farmer: only his/her own released assistance.
 export function ReleasedPieCard({ title = "Assistance already released" }) {
@@ -203,6 +256,7 @@ export function ReleasedPieCard({ title = "Assistance already released" }) {
         <h4 className="rel-pie-title"><i className="fa-solid fa-hand-holding-dollar"></i> {tr(title)}</h4>
         <ReleasedBreakdown records={records} directory={directory} isFarmer />
         <WhoList records={records} directory={directory} isFarmer tab="Released" setTab={() => {}} onOpen={open} />
+        <TypePie records={records} isFarmer />
       </div>
     );
   }
@@ -214,6 +268,7 @@ export function ReleasedPieCard({ title = "Assistance already released" }) {
       </div>
       {role === "president" && <p className="hint-text" style={{ margin: "10px 0 0" }}><i className="fa-solid fa-circle-info"></i> {tr("Only members of the association are counted here.")}</p>}
       <WhoList records={records} directory={directory} isFarmer={false} tab={tab} setTab={setTab} onOpen={open} />
+      <TypePie records={records} isFarmer={false} />
     </div>
   );
 }
