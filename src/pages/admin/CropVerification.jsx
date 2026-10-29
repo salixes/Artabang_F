@@ -24,7 +24,7 @@ export default function CropVerification({ onOpenForm } = {}) {
   const { showToast } = useToast();
   const [rows, setRows] = useState([]);
   const [names, setNames] = useState({});
-  const [filter, setFilter] = useState("Pending");
+  const [filter, setFilter] = useState("All"); // every registration stays listed as a record
   const [search, setSearch] = useState("");
   const [viewForm, setViewForm] = useState(null);
   const [busy, setBusy] = useState(null);
@@ -39,7 +39,7 @@ export default function CropVerification({ onOpenForm } = {}) {
     const latest = {};
     (eds || []).forEach((e) => { if (!latest[e.crop_registration_id]) latest[e.crop_registration_id] = e; });
     setEdits(latest);
-    setRows((crops || []).slice().sort((a, b) => new Date(b.edited_at || b.registered_at) - new Date(a.edited_at || a.registered_at)));
+    setRows(crops || []);
     setNames(Object.fromEntries((dir || []).map((d) => [d.id, d.full_name])));
   }
   useEffect(() => { load(); }, []);
@@ -52,8 +52,11 @@ export default function CropVerification({ onOpenForm } = {}) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => (filter === "All" || r.status === filter)
-      && (!q || (names[r.farmer_id] || "").toLowerCase().includes(q) || r.crop_name.toLowerCase().includes(q)));
+    // waiting crops first; after that newest first. Verified / Rejected crops stay in the list.
+    return rows
+      .filter((r) => (filter === "All" || r.status === filter)
+        && (!q || (names[r.farmer_id] || "").toLowerCase().includes(q) || r.crop_name.toLowerCase().includes(q)))
+      .sort((a, b) => (a.status === "Pending" ? 0 : 1) - (b.status === "Pending" ? 0 : 1) || new Date(b.registered_at) - new Date(a.registered_at));
   }, [rows, names, filter, search]);
 
   async function setStatus(row, status) {
@@ -67,7 +70,7 @@ export default function CropVerification({ onOpenForm } = {}) {
     setBusy(null);
     if (error) return showToast(error.message, "fa-triangle-exclamation");
     logActivity(`${status === "Verified" ? "Verified" : "Rejected"} ${row.crop_name} registration of ${names[row.farmer_id] || "a farmer"}`, "crop");
-    showToast(status === "Verified" ? "Crop approved. The farmer's records were updated and the farmer was notified." : "Crop registration rejected. The farmer was notified.", status === "Verified" ? "fa-circle-check" : "fa-circle-xmark");
+    showToast(`Crop registration ${status.toLowerCase()}. The farmer was notified.`, status === "Verified" ? "fa-circle-check" : "fa-circle-xmark");
     load();
   }
 
@@ -81,14 +84,14 @@ export default function CropVerification({ onOpenForm } = {}) {
         <div className="head-actions">
           <label className="table-search"><i className="fa-solid fa-magnifying-glass"></i><input placeholder="Search farmer or crop" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
           <select className="filter-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="All">All ({rows.length})</option>
             <option value="Pending">Pending ({counts.Pending})</option>
             <option value="Verified">Verified ({counts.Verified})</option>
             <option value="Rejected">Rejected ({counts.Rejected})</option>
-            <option value="All">All</option>
           </select>
         </div>
       </div>
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> When a farmer registers a new crop it waits here. Verify it to count toward their assistance eligibility — they are notified automatically (and told straight away if they now qualify for posted assistance).</p>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> When a farmer registers a new crop it waits here (waiting crops are listed first). Verify it to count toward their assistance eligibility — they are notified automatically (and told straight away if they now qualify for posted assistance). Every registration stays in this list as a record — Verified and Rejected crops remain here, and you can still change a decision.</p>
 
       <div className="table-panel">
         <table className="data-table">
@@ -100,7 +103,7 @@ export default function CropVerification({ onOpenForm } = {}) {
                 <td>{names[r.farmer_id] || "—"}{edits[r.id] && <EditNote edit={edits[r.id]} />}</td><td>{r.crop_name}</td><td>{r.area}</td><td>{r.planting_date}</td><td>{r.variety || "—"}</td>
                 <td>{[r.land_category, r.tenurial_status].filter(Boolean).join(" · ") || "—"}</td>
                 <td>{new Date(r.registered_at).toLocaleDateString("en-PH")}</td>
-                <td><StatusBadge status={r.status} />{r.status === "Rejected" && r.remarks && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>{r.remarks}</div>}</td>
+                <td><StatusBadge status={r.status} />{r.status === "Verified" && r.verified_at && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>Verified {new Date(r.verified_at).toLocaleDateString("en-PH")}</div>}{r.status === "Rejected" && r.remarks && <div style={{ fontSize: ".68rem", color: "var(--ink-soft)", marginTop: 2 }}>{r.remarks}</div>}</td>
                 <td style={{ whiteSpace: "nowrap" }}>
                   {r.pcic_application && <button className="btn-ghost" title="View the PCIC application form" onClick={() => (onOpenForm ? onOpenForm(r.pcic_application) : setViewForm(r.pcic_application))}><i className="fa-solid fa-file-lines"></i></button>}{" "}
                   {r.status !== "Verified" && <button className="btn-primary" style={{ padding: "5px 10px", fontSize: ".72rem" }} disabled={busy === r.id} onClick={() => setStatus(r, "Verified")}><i className="fa-solid fa-circle-check"></i> Verify</button>}{" "}
