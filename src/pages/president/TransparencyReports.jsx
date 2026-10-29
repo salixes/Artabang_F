@@ -3,23 +3,26 @@ import { supabase } from "../../lib/supabaseClient";
 import { StatusBadge, SourceBadge } from "../../components/Badges.jsx";
 import YieldReportSection from "../../components/YieldReportSection.jsx";
 import { ASSISTANCE_TYPES } from "../../lib/businessRules";
+import { markRenewals } from "../../lib/requestKind";
+import { useMemberScope, inScope } from "../../lib/memberScope";
 
 const REPORT_OPTIONS = [
   { value: "all", label: "All Assistance Records" },
   { value: "by_type", label: "By Assistance Type" },
   { value: "by_status", label: "By Status" },
   { value: "by_farmer", label: "By Farmer" },
+  { value: "by_request", label: "New Requests vs Renewals" },
 ];
 
 function FlatTable({ rows }) {
   return (
     <table className="data-table print-table">
-      <thead><tr><th>Farmer</th><th>Type</th><th>Quantity</th><th>Source</th><th>Requested</th><th>Status</th></tr></thead>
+      <thead><tr><th>Farmer</th><th>Type</th><th>Request</th><th>Quantity</th><th>Source</th><th>Requested</th><th>Status</th></tr></thead>
       <tbody>
-        {rows.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No records.</td></tr>}
+        {rows.length === 0 && <tr><td colSpan={7} style={{ textAlign: "center", color: "var(--ink-soft)" }}>No records.</td></tr>}
         {rows.map((r) => (
           <tr key={r.id}>
-            <td>{r.farmer_name}</td><td>{r.assistance_type}</td>
+            <td>{r.farmer_name}</td><td>{r.assistance_type}</td><td><StatusBadge status={r.request_kind} /></td>
             <td>{r.quantity ? `${r.quantity} ${r.unit || ""}` : "—"}</td><td><SourceBadge source={r.source} /></td>
             <td>{new Date(r.requested_at).toLocaleDateString("en-PH")}</td><td><StatusBadge status={r.status} /></td>
           </tr>
@@ -56,6 +59,7 @@ export default function TransparencyReports() {
   const [rows, setRows] = useState([]);
   const [report, setReport] = useState("all");
   const [statusFilter, setStatusFilter] = useState("All");
+  const scope = useMemberScope(); // only members of the association
 
   useEffect(() => {
     (async () => {
@@ -68,10 +72,12 @@ export default function TransparencyReports() {
     })();
   }, []);
 
+  // New Request / Renewal is worked out on the association members' records
+  const scoped = useMemo(() => markRenewals(rows.filter((r) => inScope(scope, r.farmer_id))), [rows, scope]);
   const filteredRows = useMemo(() => {
-    if (report === "by_status" && statusFilter !== "All") return rows.filter((r) => r.status === statusFilter);
-    return rows;
-  }, [rows, report, statusFilter]);
+    if (report === "by_status" && statusFilter !== "All") return scoped.filter((r) => r.status === statusFilter);
+    return scoped;
+  }, [scoped, report, statusFilter]);
 
   return (
     <section>
@@ -105,6 +111,7 @@ export default function TransparencyReports() {
           {report === "by_status" && <FlatTable rows={filteredRows} />}
           {report === "by_type" && <GroupedTable rows={filteredRows} groupKey="assistance_type" />}
           {report === "by_farmer" && <GroupedTable rows={filteredRows} groupKey="farmer_name" />}
+          {report === "by_request" && <GroupedTable rows={filteredRows} groupKey="request_kind" />}
         </div>
 
         <p className="hint-text no-print">{filteredRows.length} record{filteredRows.length === 1 ? "" : "s"} in this report.</p>
