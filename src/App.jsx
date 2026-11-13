@@ -8,7 +8,6 @@ import Login from "./pages/auth/Login.jsx";
 
 import FarmerDashboard from "./pages/farmer/Dashboard.jsx";
 import FarmerProfile from "./pages/farmer/Profile.jsx";
-import FarmerRsbsaEnrollment from "./pages/farmer/RsbsaEnrollment.jsx";
 import RsbsaValidation from "./pages/admin/RsbsaValidation.jsx";
 import FarmerCrops from "./pages/farmer/Crops.jsx";
 import FarmerYield from "./pages/farmer/Yield.jsx";
@@ -59,7 +58,6 @@ export default function App() {
       <Route path="/farmer" element={<ProtectedRoute allow="farmer"><Layout role="farmer" /></ProtectedRoute>}>
         <Route index element={<FarmerDashboard />} />
         <Route path="profile" element={<FarmerProfile />} />
-        <Route path="rsbsa" element={<FarmerRsbsaEnrollment />} />
         <Route path="activity-log" element={<ActivityLog />} />
         <Route path="crops" element={<FarmerCrops />} />
         <Route path="yield" element={<FarmerYield />} />
