@@ -74,7 +74,7 @@ export function emptyValues() {
     org1: "", org2: "", org3: "",
     livelihood: "",
     parcels: Array.from({ length: PARCEL_COUNT }, emptyParcel),
-    signDate: todayISO(), printedName: "", signature: "",
+    signDate: todayISO(), printedName: "", signature: "", signImage: "", signedAt: "",
   };
 }
 
@@ -146,7 +146,7 @@ export function validate(v) {
   }
   need("signDate", "Date (Part 4)", t(v.signDate));
   need("printedName", "Printed name of registrant", t(v.printedName));
-  need("signature", "Signature of the registrant (click the signature box to sign)", t(v.signature));
+  need("signature", "Signature of the registrant (click the signature box to sign)", t(v.signature) || t(v.signImage));
 
   // one message per key
   const seen = new Set();
@@ -249,7 +249,7 @@ export function toFarmerColumns(v, associations = []) {
       commodity: firstRow ? nul(U(firstRow.comm)) : null,
       commodity_size: firstRow && firstRow.size !== "" ? Number(firstRow.size) : null,
       no_of_heads_trees: firstRow ? nul(String(firstRow.heads ?? "")) : null,
-      consent_given: !!(v.signature || "").trim() && !!v.signDate, consent_date: v.signDate || null,
+      consent_given: !!((v.signature || "").trim() || (v.signImage || "")) && !!v.signDate, consent_date: v.signDate || null,
       rsbsa_form: v,
     },
     crops,

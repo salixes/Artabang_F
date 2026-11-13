@@ -9,7 +9,6 @@ export const NAV = {
     { to: "/farmer", label: "Dashboard", icon: "fa-seedling", end: true },
     { to: "/farmer/announcements", label: "Announcements", icon: "fa-bullhorn" },
     { to: "/farmer/profile", label: "My Profile", icon: "fa-id-card" },
-    { to: "/farmer/rsbsa", label: "RSBSA Enrollment", icon: "fa-file-signature" },
     { to: "/farmer/crops", label: "Crop Registration", icon: "fa-tractor" },
     { to: "/farmer/yield", label: "My Yield Records", icon: "fa-wheat-awn" },
     {
