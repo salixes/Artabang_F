@@ -52,7 +52,6 @@ export default function FarmerProfile() {
     e.preventDefault();
     const phoneMsg = phoneError(editForm.contact_number, { required: true });
     if (phoneMsg) return showToast(phoneMsg, "fa-triangle-exclamation");
-    if (editForm.is_association_member && !editForm.association_id) return showToast("Please choose which association you belong to.", "fa-triangle-exclamation");
     setSaving(true);
     try {
       let photo_url = directoryRow.photo_url;
@@ -71,7 +70,7 @@ export default function FarmerProfile() {
 
       const { error: farmErr } = await supabase.from("farmers").update({
         location: editForm.location, farm_size: editForm.farm_size ? Number(editForm.farm_size) : null,
-        is_association_member: editForm.is_association_member, association_id: editForm.is_association_member ? editForm.association_id : null, photo_url, updated_at: new Date().toISOString(),
+        photo_url, updated_at: new Date().toISOString(),
       }).eq("id", farmer.id);
       if (farmErr) throw farmErr;
 
@@ -152,15 +151,7 @@ export default function FarmerProfile() {
             <label>{tr("Contact Number")} <PhoneInput value={editForm.contact_number} onChange={(v) => setEditForm({ ...editForm, contact_number: v })} placeholder={tr("09XXXXXXXXX")} required /></label>
             <label>{tr("Location (Purok)")} <input type="text" value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} required /></label>
             <label>{tr("Farm Size (hectares)")} <input type="number" min="0.1" step="0.1" value={editForm.farm_size} onChange={(e) => setEditForm({ ...editForm, farm_size: e.target.value })} required /></label>
-            <label>{tr("Farmers Association Member?")} <select value={editForm.is_association_member ? "yes" : "no"} onChange={(e) => setEditForm({ ...editForm, is_association_member: e.target.value === "yes", association_id: e.target.value === "yes" ? editForm.association_id : "" })}><option value="no">{tr("No")}</option><option value="yes">{tr("Yes")}</option></select></label>
-            {editForm.is_association_member && (
-              <label>{tr("Which association?")}
-                <select value={editForm.association_id} onChange={(e) => setEditForm({ ...editForm, association_id: e.target.value })} required>
-                  <option value="">{tr("Choose your association…")}</option>
-                  {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </label>
-            )}
+            
             <div className="modal-actions">
               <button type="button" className="btn-ghost" onClick={() => setEditOpen(false)}>{tr("Cancel")}</button>
               <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Saving…" : <><i className="fa-solid fa-floppy-disk"></i> {tr("Save")}</>}</button>

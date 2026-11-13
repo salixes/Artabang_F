@@ -15,15 +15,29 @@ const ACTION_META = {
   page_view: { label: "Page", icon: "fa-window-maximize", tone: "page" },
   action: { label: "Action", icon: "fa-bolt", tone: "act" },
 };
+// What kind of session action a row is (the database writes a clear sentence for each one)
+export function sessionKind(r) {
+  const d = String(r.description || "").toLowerCase();
+  if (d.includes("logged out all devices")) return "logout_all";
+  if (d.includes("ended by admin") || /^an admin (terminated|ended)/.test(d)) return "by_admin"; // the affected user's row
+  return "terminate";                                                                              // "Terminated …" (by the user, or by the admin)
+}
+const SESSION_META = {
+  logout_all: { label: "Logged out all devices", icon: "fa-power-off", tone: "bad" },
+  terminate: { label: "Terminated session", icon: "fa-user-lock", tone: "warn" },
+  by_admin: { label: "Ended by admin", icon: "fa-user-shield", tone: "warn" },
+};
 const KIND_OPTIONS = [
   { v: "all", l: "All activity" },
   { v: "auth", l: "Sign-ins & sign-outs" },
   { v: "login_failed", l: "Failed sign-ins" },
   { v: "action", l: "Actions" },
-  { v: "session", l: "Session actions" },
+  { v: "session", l: "Session actions (all)" },
+  { v: "terminate", l: "Terminated sessions" },
+  { v: "logout_all", l: "Logged out all devices" },
   { v: "page_view", l: "Pages opened" },
 ];
-const kindMatch = (r, kind) => kind === "all" || (kind === "auth" ? r.action === "login" || r.action === "logout" : kind === "session" ? r.category === "session" : r.action === kind);
+const kindMatch = (r, kind) => kind === "all" || (kind === "auth" ? r.action === "login" || r.action === "logout" : kind === "session" ? r.category === "session" : kind === "terminate" ? r.category === "session" && sessionKind(r) !== "logout_all" : kind === "logout_all" ? r.category === "session" && sessionKind(r) === "logout_all" : r.action === kind);
 const deviceIcon = (t) => (t === "Mobile" ? "fa-mobile-screen" : t === "Tablet" ? "fa-tablet-screen-button" : "fa-desktop");
 const fmt = (d) => new Date(d).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 function ago(d) {
@@ -37,8 +51,8 @@ const newestFirst = (list) => [...list].sort((a, b) => new Date(b.created_at) - 
 const startOfDay = (d = new Date()) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
 
 function ActionBadge({ r }) {
-  const m = r.category === "session" ? { label: "Session action", icon: "fa-user-lock", tone: "warn" } : (ACTION_META[r.action] || ACTION_META.action);
-  return <span className={`al-badge ${m.tone}`}><i className={`fa-solid ${m.icon}`}></i> {m.label}</span>;
+  const m = r.category === "session" ? SESSION_META[sessionKind(r)] : (ACTION_META[r.action] || ACTION_META.action);
+  return <span className={`al-badge ${m.tone}`}><i className={`fa-solid ${m.icon}`}></i> {tr(m.label)}</span>;
 }
 function DeviceCell({ r }) {
   if (!r.browser && !r.os) return <span style={{ color: "var(--ink-soft)" }}>—</span>;
@@ -307,18 +321,16 @@ function AdminActivityLog() {
   const [logShown, setLogShown] = useState(100);
   const [termBusy, setTermBusy] = useState(false);
 
-  useEffect(() => {
-    setRows(null);
+  const loadLogs = async () => {
     const since = days === 1 ? startOfDay() : new Date(Date.now() - days * 864e5);
-    (async () => {
-      const [{ data: logs }, { data: profs }] = await Promise.all([
-        supabase.from("activity_log").select("*").gte("created_at", since.toISOString()).order("created_at", { ascending: false }).limit(LIMIT),
-        supabase.from("profiles").select("id, full_name, role, email"),
-      ]);
-      setPeople(Object.fromEntries((profs || []).map((p) => [p.id, p])));
-      setRows(newestFirst(logs || []));
-    })();
-  }, [days]);
+    const [{ data: logs }, { data: profs }] = await Promise.all([
+      supabase.from("activity_log").select("*").gte("created_at", since.toISOString()).order("created_at", { ascending: false }).limit(LIMIT),
+      supabase.from("profiles").select("id, full_name, role, email"),
+    ]);
+    setPeople(Object.fromEntries((profs || []).map((p) => [p.id, p])));
+    setRows(newestFirst(logs || []));
+  };
+  useEffect(() => { setRows(null); loadLogs(); }, [days]);
 
   const loadSessions = async () => {
     const { data } = await supabase.from("user_sessions").select("id, user_id, last_seen_at").is("ended_at", null);
@@ -332,6 +344,7 @@ function AdminActivityLog() {
     setTermBusy(false);
     if (error) return alert(error.message);
     loadSessions();
+    loadLogs(); // the action taken now shows in the log
   }
 
   const named = useMemo(() => (rows || []).map((r) => ({ ...r, name: people[r.user_id]?.full_name || "Unknown user", email: people[r.user_id]?.email || "" })), [rows, people]);
@@ -362,6 +375,7 @@ function AdminActivityLog() {
     logins: named.filter((r) => r.action === "login").length,
     failed: named.filter((r) => r.action === "login_failed").length,
     newDev: named.filter((r) => r.is_new_device).length,
+    sessionActs: named.filter((r) => r.category === "session").length,
   }), [named, users]);
 
   if (!rows) return <p className="hint-text"><i className="fa-solid fa-spinner fa-spin"></i> {tr("Loading activity…")}</p>;
@@ -375,7 +389,7 @@ function AdminActivityLog() {
   function exportCsv() {
     const head = ["When", "User", "Email", "Role", "Activity", "Details", "Page", "Device type", "Browser", "System", "Screen", "Language", "Time zone", "IP address", "New device"];
     const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const lines = filtered.map((r) => [new Date(r.created_at).toLocaleString("en-PH"), r.name, r.email, r.role, (ACTION_META[r.action] || {}).label, r.description, r.page,
+    const lines = filtered.map((r) => [new Date(r.created_at).toLocaleString("en-PH"), r.name, r.email, r.role, (r.category === "session" ? SESSION_META[sessionKind(r)].label : (ACTION_META[r.action] || {}).label), r.description, r.page,
       r.device_type, r.browser, r.os, r.screen, r.language, r.timezone, r.ip_address, r.is_new_device ? "Yes" : ""].map(esc).join(","));
     const blob = new Blob(["\ufeff" + [head.map(esc).join(","), ...lines].join("\r\n")], { type: "text/csv;charset=utf-8" });
     const a = document.createElement("a");
@@ -406,6 +420,7 @@ function AdminActivityLog() {
           <div className="al-stat"><b>{stats.logins}</b><span>{tr("Sign-ins")}</span></div>
           <div className={`al-stat ${stats.failed ? "bad" : ""}`}><b>{stats.failed}</b><span>{tr("Failed sign-ins")}</span></div>
           <div className={`al-stat ${stats.newDev ? "warn" : ""}`}><b>{stats.newDev}</b><span>{tr("New-device sign-ins")}</span></div>
+          <div className={`al-stat ${stats.sessionActs ? "warn" : ""}`} style={{ cursor: "pointer" }} onClick={() => { setKind("session"); setTab("activity"); }} title={tr("Show the session actions")}><b>{stats.sessionActs}</b><span>{tr("Session actions")}</span></div>
         </div>
         {rows.length >= LIMIT && <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>{tr("Showing the latest")} {LIMIT.toLocaleString()} {tr("events in this range. Choose a shorter range to see the rest.")}</span></p>}
 

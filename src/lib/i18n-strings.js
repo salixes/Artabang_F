@@ -357,7 +357,17 @@ export const FIL = {
  "Paid by the farmer": "Binabayaran ng magsasaka",
  "Requires an updated profile photo, a registered crop, a farm size on file, and a verified harvest/yield record.": "Kailangan ng bagong litrato sa profile, isang nairehistrong pananim, laki ng sakahan sa talaan, at beripikadong talaan ng ani.",
  "Requires an updated profile photo, a registered crop, a farm size on file, and active membership in a recognized farmers association. Given once per farmer.": "Kailangan ng bagong litrato sa profile, isang nairehistrong pananim, laki ng sakahan sa talaan, at aktibong pagiging miyembro ng kinikilalang samahan ng mga magsasaka. Isang beses lang ibinibigay sa bawat magsasaka.",
- "Requires an updated profile photo, a registered crop, a farm size on file, a verified harvest/yield record, and that the affected crop was registered under Crop Insurance before any damage occurred.": "Kailangan ng bagong litrato sa profile, isang nairehistrong pananim, laki ng sakahan sa talaan, beripikadong talaan ng ani, at na ang apektadong pananim ay nairehistro sa Crop Insurance bago nangyari ang anumang pinsala."
+ "Requires an updated profile photo, a registered crop, a farm size on file, a verified harvest/yield record, and that the affected crop was registered under Crop Insurance before any damage occurred.": "Kailangan ng bagong litrato sa profile, isang nairehistrong pananim, laki ng sakahan sa talaan, beripikadong talaan ng ani, at na ang apektadong pananim ay nairehistro sa Crop Insurance bago nangyari ang anumang pinsala.",
+ "Terminated session": "Winakasan ang session",
+ "Logged out all devices": "Nag-log out sa lahat ng device",
+ "Ended by admin": "Tinapos ng admin",
+ "Session actions": "Mga aksyon sa session",
+ "Show the session actions": "Ipakita ang mga aksyon sa session",
+ "Search policies…": "Maghanap ng patakaran…",
+ "View only — your association's president manages these policies.": "Basahin lamang — ang presidente ng iyong samahan ang namamahala sa mga patakarang ito.",
+ "No policies have been published yet.": "Wala pang nailathalang patakaran.",
+ "No policies match your search.": "Walang tugmang patakaran sa hinahanap mo.",
+ "Ask the admin to add you to your association.": "Hilingin sa admin na idagdag ka sa iyong samahan.",
 };
 
 export const CEB = {
@@ -716,5 +726,15 @@ export const CEB = {
  "Paid by the farmer": "Bayran sa mag-uuma",
  "Requires an updated profile photo, a registered crop, a farm size on file, and a verified harvest/yield record.": "Kinahanglan og bag-ong litrato sa profile, usa ka narehistro nga tanom, gidak-on sa uma sa rekord, ug gi-verify nga rekord sa ani.",
  "Requires an updated profile photo, a registered crop, a farm size on file, and active membership in a recognized farmers association. Given once per farmer.": "Kinahanglan og bag-ong litrato sa profile, usa ka narehistro nga tanom, gidak-on sa uma sa rekord, ug aktibong pagka-miyembro sa giila nga asosasyon sa mga mag-uuma. Makausa lang gihatag matag mag-uuma.",
- "Requires an updated profile photo, a registered crop, a farm size on file, a verified harvest/yield record, and that the affected crop was registered under Crop Insurance before any damage occurred.": "Kinahanglan og bag-ong litrato sa profile, usa ka narehistro nga tanom, gidak-on sa uma sa rekord, gi-verify nga rekord sa ani, ug nga ang naapektuhan nga tanom narehistro sa Crop Insurance sa wala pa mahitabo ang bisan unsang kadaot."
+ "Requires an updated profile photo, a registered crop, a farm size on file, a verified harvest/yield record, and that the affected crop was registered under Crop Insurance before any damage occurred.": "Kinahanglan og bag-ong litrato sa profile, usa ka narehistro nga tanom, gidak-on sa uma sa rekord, gi-verify nga rekord sa ani, ug nga ang naapektuhan nga tanom narehistro sa Crop Insurance sa wala pa mahitabo ang bisan unsang kadaot.",
+ "Terminated session": "Gitapos ang session",
+ "Logged out all devices": "Nag-log out sa tanang device",
+ "Ended by admin": "Gitapos sa admin",
+ "Session actions": "Mga lihok sa session",
+ "Show the session actions": "Ipakita ang mga lihok sa session",
+ "Search policies…": "Pangita og palisiya…",
+ "View only — your association's president manages these policies.": "Basahon lang — ang presidente sa imong asosasyon ang nagdumala niini nga mga palisiya.",
+ "No policies have been published yet.": "Wala pay gipatik nga palisiya.",
+ "No policies match your search.": "Walay mohaom nga palisiya sa imong gipangita.",
+ "Ask the admin to add you to your association.": "Pangayoa ang admin nga i-dugang ka sa imong asosasyon.",
 };

@@ -1012,3 +1012,11 @@ body.dark .al-badge.act{background:#32284A;color:#C9B5EE;}
 .lang-list button:hover{background:rgba(31,107,62,.14)}
 .lang-list button.on{background:var(--forest);color:#fff;font-weight:600}
 @keyframes langdrop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* association policies (president edits, farmers read) */
+.policy-list{display:flex;flex-direction:column;gap:12px;max-width:920px}
+.policy-card .panel-head{align-items:center;gap:10px;flex-wrap:wrap}
+.policy-body{white-space:pre-line;padding:0 4px 6px;font-size:.88rem;line-height:1.6;color:var(--ink)}
+.policy-meta{margin:6px 4px 2px;font-size:.72rem;color:var(--ink-soft)}
+.policy-scope{display:inline-flex;gap:5px;align-items:center;background:rgba(31,107,62,.1);color:var(--forest);border-radius:999px;padding:2px 9px;font-weight:600}
+.policy-actions{display:flex;gap:6px;align-items:center}

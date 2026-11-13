@@ -33,27 +33,44 @@ export default function AdminFarmers() {
       .then(({ data }) => { if (!off) setDetailCrops(data || []); });
     return () => { off = true; };
   }, [detailRow]);
-  // "Create account only": no form now, the farmer fills out the RSBSA form in their own account
+  // "Create account only": just the login (+ the association). The RSBSA form can be filled out later with Add Farmer.
   const [quickOpen, setQuickOpen] = useState(false);
-  const [quick, setQuick] = useState({ full_name: "", email: "", password: "", contact_number: "" });
+  const [quick, setQuick] = useState({ full_name: "", email: "", password: "", contact_number: "", is_member: "no", association_id: "" });
   const [quickBusy, setQuickBusy] = useState(false);
+  // the admin decides who is a member of an association (members can read that association's policies)
+  const [assocDraft, setAssocDraft] = useState("");
+  const [assocBusy, setAssocBusy] = useState(false);
+  useEffect(() => { setAssocDraft(detailRow?.association_id || ""); }, [detailRow]);
+  async function saveAssociation() {
+    setAssocBusy(true);
+    const { error } = await supabase.from("farmers").update({ is_association_member: !!assocDraft, association_id: assocDraft || null, updated_at: new Date().toISOString() }).eq("id", detailRow.id);
+    setAssocBusy(false);
+    if (error) return showToast(error.message, "fa-triangle-exclamation");
+    const name = associations.find((a) => a.id === assocDraft)?.name || null;
+    logActivity(`${assocDraft ? `Set ${detailRow.full_name} as a member of ${name}` : `Removed ${detailRow.full_name} from the association`}`, "farmer");
+    showToast(assocDraft ? `Saved. ${detailRow.full_name} is now a member of ${name}.` : "Saved. The farmer is no longer in an association.", "fa-people-group");
+    setDetailRow({ ...detailRow, is_association_member: !!assocDraft, association_id: assocDraft || null, association_name: name });
+    load();
+  }
 
   async function createQuick(e) {
     e.preventDefault();
     if (quick.password.length < 6) return showToast("Temporary password must be at least 6 characters.", "fa-triangle-exclamation");
+    if (quick.is_member === "yes" && !quick.association_id) return showToast("Please choose the association of this farmer.", "fa-triangle-exclamation");
     setQuickBusy(true);
     let data, error;
     try {
       ({ data, error } = await supabase.functions.invoke("admin-create-user", {
-        body: { full_name: quick.full_name.trim(), email: quick.email.trim(), password: quick.password, role: "farmer", contact_number: quick.contact_number.trim() || null },
+        body: { full_name: quick.full_name.trim(), email: quick.email.trim(), password: quick.password, role: "farmer", contact_number: quick.contact_number.trim() || null,
+          is_association_member: quick.is_member === "yes", association_id: quick.is_member === "yes" ? quick.association_id : null },
       }));
     } catch (err) { error = err; }
     setQuickBusy(false);
     if (error || data?.error) return showToast(data?.error || error?.message || "Could not create the account.", "fa-triangle-exclamation");
-    logActivity(`Created farmer account for ${quick.full_name.trim()} (RSBSA form to be filled by the farmer)`, "farmer");
+    logActivity(`Created farmer account for ${quick.full_name.trim()}${quick.is_member === "yes" ? ` (member of ${associations.find((a) => a.id === quick.association_id)?.name || "an association"})` : ""}`, "farmer");
     showToast("Account created. Give the farmer the e-mail and temporary password.", "fa-user-plus");
     setQuickOpen(false);
-    setQuick({ full_name: "", email: "", password: "", contact_number: "" });
+    setQuick({ full_name: "", email: "", password: "", contact_number: "", is_member: "no", association_id: "" });
     load();
   }
 
@@ -104,7 +121,7 @@ export default function AdminFarmers() {
           <button className="btn-primary" onClick={() => setEnroll({ farmer: null })}><i className="fa-solid fa-file-pen"></i> Add Farmer (fill RSBSA form)</button>
         </div>
       </div>
-      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>Two ways to enroll a new farmer: <b>Add Farmer</b> opens the official RSBSA Enrollment Form for you to fill out (for farmers who did not bring a phone). <b>Create Account Only</b> makes just the login. The farmer then fills out and signs the form in their own account, and you validate it in RSBSA Validation.</span></p>
+      <p className="hint-text"><i className="fa-solid fa-circle-info"></i> <span>Two ways to enroll a new farmer: <b>Add Farmer</b> opens the official RSBSA Enrollment Form for you to fill out (for farmers who did not bring a phone). <b>Create Account Only</b> makes just the login, and you choose if the farmer is a member of an association.</span></p>
 
       <div className="farmer-grid">
         {filtered.length === 0 && <p className="hint-text">No farmers found.</p>}
@@ -128,11 +145,25 @@ export default function AdminFarmers() {
       {/* CREATE ACCOUNT ONLY */}
       <Modal open={quickOpen} onClose={() => setQuickOpen(false)} title="Create farmer account" icon="fa-user-plus">
         <form className="modal-body" onSubmit={createQuick}>
-          <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-circle-info"></i> <span>This only creates the login. The farmer signs in, fills out and signs the RSBSA Enrollment Form, and you validate it in <b>RSBSA Validation</b>.</span></p>
+          <p className="hint-text" style={{ margin: 0 }}><i className="fa-solid fa-circle-info"></i> <span>This creates the login. Choose below if the farmer is a <b>member of an association</b>. Members can read their association's policies in their account right away.</span></p>
           <label>Full name <input value={quick.full_name} onChange={(e) => setQuick({ ...quick, full_name: e.target.value })} required /></label>
           <label>Login e-mail <input type="email" value={quick.email} onChange={(e) => setQuick({ ...quick, email: e.target.value })} required autoComplete="off" /></label>
           <label>Temporary password <input type="text" minLength={6} value={quick.password} onChange={(e) => setQuick({ ...quick, password: e.target.value })} required autoComplete="off" /></label>
           <label>Contact number (optional) <input value={quick.contact_number} onChange={(e) => setQuick({ ...quick, contact_number: e.target.value })} placeholder="09XX-XXX-XXXX" /></label>
+          <label>Member of an association?
+            <select value={quick.is_member} onChange={(e) => setQuick({ ...quick, is_member: e.target.value, association_id: e.target.value === "yes" ? quick.association_id : "" })}>
+              <option value="no">No, not a member</option>
+              <option value="yes">Yes, a member</option>
+            </select>
+          </label>
+          {quick.is_member === "yes" && (
+            <label>Which association?
+              <select value={quick.association_id} onChange={(e) => setQuick({ ...quick, association_id: e.target.value })} required>
+                <option value="">Choose the association…</option>
+                {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </label>
+          )}
           <div className="modal-actions">
             <button type="button" className="btn-ghost" onClick={() => setQuickOpen(false)}>Cancel</button>
             <button type="submit" className="btn-primary" disabled={quickBusy}>{quickBusy ? "Creating…" : "Create account"}</button>
@@ -157,6 +188,17 @@ export default function AdminFarmers() {
               <li><span>Total Verified Yield</span><b>{Number(detailRow.total_verified_yield).toLocaleString()} kg</b></li>
               <li><span>Consent on File</span><b>{detailRow.consent_given ? `Yes (${detailRow.consent_date})` : "Not yet recorded"}</b></li>
             </ul>
+            <div className="rsbsa-subhead"><span>Association membership</span></div>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", margin: "4px 0 10px" }}>
+              <label style={{ flex: 1, minWidth: 220 }}>Member of
+                <select value={assocDraft} onChange={(e) => setAssocDraft(e.target.value)}>
+                  <option value="">Not a member</option>
+                  {associations.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </label>
+              <button type="button" className="btn-primary" onClick={saveAssociation} disabled={assocBusy || assocDraft === (detailRow.association_id || "")}><i className="fa-solid fa-floppy-disk"></i> {assocBusy ? "Saving…" : "Save"}</button>
+            </div>
+            <p className="hint-text" style={{ margin: "0 0 10px" }}><i className="fa-solid fa-circle-info"></i> <span>Members can read their association's policies in the farmer account.</span></p>
             <div className="rsbsa-subhead"><span>Registered crops</span></div>
             <div className="table-panel" style={{ boxShadow: "none" }}>
               <table className="data-table">

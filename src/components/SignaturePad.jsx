@@ -159,26 +159,32 @@ function SignDialog({ initialName, onClose, onSave }) {
   );
 }
 
-export default function SignaturePad({ value, onChange, readOnly = false, bad = false, printedName = "", height = 44, line = true }) {
+// Works with BOTH ways the forms call it:
+//   <SignaturePad image={v.signImage} typed={v.sign} name={printedName} underline onChange={(img) => ...} />   (PCIC / RSBSA paper)
+//   <SignaturePad value={...} printedName={...} line height={...} onChange={...} />                            (older calls)
+export default function SignaturePad({ value, image, typed, name, printedName, onChange, readOnly = false, bad = false, height, line, underline }) {
   const [open, setOpen] = useState(false);
-  const img = isImageSig(value);
-  const has = !!(value || "").trim();
+  const current = image || value || typed || "";           // picture first, then an older typed name
+  const showLine = underline ?? line ?? false;
+  const boxHeight = height ?? (showLine ? 48 : 34);
+  const img = isImageSig(current);
+  const has = !!String(current).trim();
   const click = () => { if (!readOnly) setOpen(true); };
   return (
     <>
       <div
-        className={`sig-box${bad ? " bad" : ""}${readOnly ? " ro" : ""}${line ? " line" : ""}`}
-        style={{ height }} onClick={click}
+        className={`sig-box${bad && !has ? " bad" : ""}${readOnly ? " ro" : ""}${showLine ? " line" : ""}`}
+        style={{ height: boxHeight }} onClick={click}
         role={readOnly ? undefined : "button"} tabIndex={readOnly ? undefined : 0}
         onKeyDown={(e) => { if (!readOnly && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setOpen(true); } }}
         title={readOnly ? undefined : "Click to sign"}
       >
-        {img ? <img src={value} alt="Signature" />
-          : has ? <span className="sig-text" style={{ fontFamily: SCRIPT }}>{value}</span>
+        {img ? <img src={current} alt="Signature" />
+          : has ? <span className="sig-text" style={{ fontFamily: SCRIPT }}>{current}</span>
           : !readOnly && <span className="sig-ph"><i className="fa-solid fa-signature"></i> Click here to sign</span>}
         {!readOnly && has && <button type="button" className="sig-redo" onClick={(e) => { e.stopPropagation(); setOpen(true); }} title="Sign again"><i className="fa-solid fa-pen"></i></button>}
       </div>
-      {open && <SignDialog initialName={printedName} onClose={() => setOpen(false)} onSave={(url) => { onChange(url); setOpen(false); }} />}
+      {open && <SignDialog initialName={printedName || name || ""} onClose={() => setOpen(false)} onSave={(url) => { onChange && onChange(url); setOpen(false); }} />}
     </>
   );
 }

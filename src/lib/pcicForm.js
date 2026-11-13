@@ -44,7 +44,7 @@ export function emptyValues() {
     pay: "", acct1: "", acct2: "", acct3: "", acct4: "", payOther: "",
     lots: Array.from({ length: LOT_COUNT }, emptyLot),
     cover: "",
-    cert1: false, cert2: false, cert3: false, sign: "", signDate: todayISO(),
+    cert1: false, cert2: false, cert3: false, sign: "", signImage: "", signedAt: "", signDate: todayISO(),
     prem: "", ncfr: "", rsbsaRef: "", premOther: "",
   };
 }
@@ -123,7 +123,7 @@ export function validate(v) {
   need("cert1", "Certification (first box) must be ticked", v.cert1);
   need("cert2", "Data privacy consent (second box) must be ticked", v.cert2);
   if (isBorrowing(v)) need("cert3", "Deed of Assignment box must be ticked for borrowing farmers", v.cert3);
-  need("sign", "Signature of the applicant is required (click the signature box to sign)", t(v.sign));
+  need("sign", "Signature of the applicant is required (click the signature box to sign)", t(v.sign) || t(v.signImage));
   need("signDate", "Date of signature is required", v.signDate);
 
   const seen = new Set();
