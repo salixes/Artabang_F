@@ -110,3 +110,17 @@ img,svg,video,canvas{max-width:100%;}
 @media (max-height:640px){
   .sidebar-foot{display:none;}
 }
+
+/* ---- no automatic zoom when you tap a field on a phone or tablet ----
+   iPhone / iPad (and some Android browsers) zoom the whole page in when you tap a box whose text is
+   smaller than 16px, and then stay zoomed. The login boxes and many form boxes were 13px, and the
+   older 16px rule above lost to more specific rules. This one is stronger and covers every
+   touch screen (any width). The official PCIC / RSBSA paper forms keep their own small print. */
+@media (pointer:coarse){
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden]):not(.pp *):not(.rp *),
+  select:not(.pp *):not(.rp *),
+  textarea:not(.pp *):not(.rp *){
+    font-size:16px !important;
+    max-width:100%;                 /* the bigger text must never push a box past the screen edge */
+  }
+}
